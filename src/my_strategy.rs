@@ -68,22 +68,25 @@ impl MyStrategy {
     fn gk(&mut self) {
         let ball_pos = self.game.ball.position();
         let goal_line = Seg2{
-            origin:   Vec2{x:-self.rules.arena.goal_width/2.0, y:0.0},
-            terminal: Vec2{x: self.rules.arena.goal_width/2.0, y:0.0}
+            origin:   Vec2{x:-self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0},
+            terminal: Vec2{x: self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0}
         };
-        let ball_seg = Seg2::new3(self.game.ball.position(), 100.0, self.game.ball.velocity().th());
+        let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
         let mut target = Vec2{x:0.0, y:-self.rules.arena.depth/2.0};
+        println!("DFAS");
         if self.game.ball.velocity().y < -1.0 { // KICK
             target = goal_line.intersection(ball_seg);
-        } else if self.game.ball.position().y  < 1.0 {
-            let mut x = self.game.ball.position().x;
-            if x < -self.rules.arena.goal_width/2.0 {
-                x = -self.rules.arena.goal_width/2.0;
-            } else if x > self.rules.arena.goal_width/2.0 {
-                x = self.rules.arena.goal_width/2.0;
+            if target.x == 5000.0 {
+                target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
             }
-            target = Vec2::new(x, -self.rules.arena.depth/2.0);
-
+            println!("TARTAR: {:?}", target);
+        } else if self.game.ball.position().y  < 1.0 {
+            target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
+        }
+        if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
+            target.x = -self.rules.arena.goal_width/2.0 + 1.5;
+        } else if target.x > self.rules.arena.goal_width/2.0 - 1.5{
+            target.x = self.rules.arena.goal_width/2.0 - 1.5;
         }
         self.gtp(&target);
     }
@@ -125,9 +128,10 @@ impl MyStrategy {
             jump = 0.0;
             idealPath = idealPath + shift*3.1415/180.0 ;
         }
-        println!("ball height {}", self.game.ball.height());
-
+        println!("ball height: {}", self.game.ball.height());
         self.set_robot_vel(idealPath ,1000.0,jump);
+        println!("DDD");
+
 
 
     }
@@ -151,8 +155,8 @@ impl MyStrategy {
             target_velocity_x: vel*angle.cos(),
             target_velocity_y: 0.0,
             target_velocity_z: vel*angle.sin(),
-            jump_speed: self.action.jump_speed,
-            use_nitro: self.action.use_nitro,
+            jump_speed: jump,
+            use_nitro: false,
         }
     }
 }

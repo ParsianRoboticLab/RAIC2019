@@ -58,17 +58,17 @@ impl Line2 {
     }
 
     fn intersection(&self, other : Line2) -> Vec2 {
-        Line2::intersection(&*self, other)
+        Line2::rintersection(*self, other)
     }
 }
 
 trait Intersection {
-    fn intersection(l1 : Line2, l2 : Line2) -> Vec2 ;
+    fn rintersection(l1 : Line2, l2 : Line2) -> Vec2 ;
     fn perpendicular_bisector(v1: Vec2, v2: Vec2) -> Line2;
 }
 
 impl Intersection for Line2 {
-    fn intersection(l1 : Line2, l2 : Line2) -> Vec2 {
+    fn rintersection(l1 : Line2, l2 : Line2) -> Vec2 {
         let t = l1.a() * l2.b() - l1.b() * l2.a();
         if t.abs() < EPSILON {
             return VEC2INVALID
