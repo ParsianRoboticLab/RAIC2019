@@ -30,7 +30,7 @@ impl Default for MyStrategy {
             rules: Rules{..Default::default()},
             game: Game{..Default::default()},
             action: Action{..Default::default()},
-            posPID: PID::new(10.0,0.0,0.0),
+            posPID: PID::new(5.0,0.0,0.0),
         }
     }
 }
@@ -90,7 +90,23 @@ impl MyStrategy {
         }
         self.gtp(&target);
     }
+    fn ballTouchPrediction(&mut self) -> Vec2 {
+        let gravity = self.rules.GRAVITY;
+        let ballpos = self.game.ball.position();
+        let ballHeight = self.game.ball.height();
+        let ballVel = self.game.ball.velocity();
+        let ballhVel = self.game.ball.hVel();
+        let timeToTouchTheField = (ballhVel + (ballhVel*ballhVel + 2.0*gravity*(ballHeight - self.game.ball.radius)).sqrt()) / gravity;
 
+        println!("ballVelx: {}, ballVelY : {} , ballVelLen : {} , time : {}",ballVel.x,ballVel.y,ballVel.len(),timeToTouchTheField );
+        let lenTravel = timeToTouchTheField * ballVel.len();
+        if ballVel.len() == 0.0 {
+            ballpos
+        }
+        else {
+            ballpos + ballVel.normalize() * lenTravel
+        }
+    }
     fn kick(&mut self, target: &Vec2)  {
         let ballpos = self.game.ball.position();
         let robotpos = self.me.position();
@@ -116,23 +132,28 @@ impl MyStrategy {
             shift = -30.0;
         }
         let mut jump = 0.0;
-        let robotCurrentPath = self.me.velocity().th().deg();
-        if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0) && (self.game.ball.height() < 3.0)  {
-            idealPath = (*target - robotpos).th().deg();
-            if ((robotCurrentPath - idealPath).abs() * RAD2DEG) < 20.0 {
-                jump = 1000.0;
+        let robotCurrentPath = self.me.velocity().th();
+        if self.game.ball.height() >= 3.5 {
+            let touchPrediction = self.ballTouchPrediction();
+            let locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * 3.5;
+            self.gtp(&locationByPredict);
+        } else {
+            if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0)   {
+                idealPath = (*target - robotpos).th();
+                let sagPath = (ballpos - robotpos).th();
+                if ((robotCurrentPath - sagPath).abs() * 180.0 / 3.1415) < 40.0 || self.me.velocity().len() < 0.1 {
+                    jump = self.rules.ROBOT_MAX_JUMP_SPEED;
+                } else {
+                    jump = 0.0;
+                }
             } else {
                 jump = 0.0;
+                idealPath = idealPath + shift*3.1415/180.0 ;
             }
-        } else {
-            jump = 0.0;
-            idealPath = idealPath + shift*3.1415/180.0 ;
+
+
+            self.set_robot_vel(idealPath ,100.0,jump);
         }
-        println!("ball height: {}", self.game.ball.height());
-        self.set_robot_vel(idealPath ,1000.0,jump);
-        println!("DDD");
-
-
 
     }
     fn pm(&mut self, target: &Vec2) {
@@ -140,9 +161,24 @@ impl MyStrategy {
 
     }
 
-    fn gtp(&mut self, target: &Vec2) {
-        let dist = self.me.position().dist(*target);
-        let diff = *target - self.me.position();
+    fn gtp(&mut self, targetMain: & Vec2) {
+
+        let mut target = *targetMain;
+    if (target).y > self.rules.arena.depth / 2.0 {
+            (target).y = self.rules.arena.depth / 2.0;
+        }
+        if(target.y < self.rules.arena.depth / -2.0) {
+            target.y = self.rules.arena.depth / -2.0;
+        }
+        if(target.x > self.rules.arena.width / 2.0) {
+            target.x = self.rules.arena.width / 2.0;
+        }
+        if(target.x < self.rules.arena.width / -2.0) {
+            target.x = self.rules.arena.width / -2.0;
+        }
+
+        let dist = self.me.position().dist(target);
+        let diff = target - self.me.position();
         let angle = (diff.y).atan2(diff.x);
         let a  = self.posPID.run(dist);
         println!("{}**{}**{}", dist, angle, a);

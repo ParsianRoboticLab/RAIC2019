@@ -6,6 +6,8 @@ trait Entity {
     fn velocity(&self) -> Vec2;
     // Height
     fn height(&self) -> f64;
+
+    fn hVel(&self) -> f64;
 }
 
 impl Entity for Robot {
@@ -15,9 +17,13 @@ impl Entity for Robot {
     fn velocity(&self) -> Vec2 {
         Vec2::new(self.velocity_x, self.velocity_z)
     }
+    fn hVel(&self) -> f64 {
+        self.velocity_y
+    }
     fn height(&self) -> f64 {
         self.y
     }
+
 }
 
 impl Entity for Ball {
@@ -26,6 +32,9 @@ impl Entity for Ball {
     }
     fn velocity(&self) -> Vec2 {
         Vec2::new(self.velocity_x, self.velocity_z)
+    }
+    fn hVel(&self) -> f64 {
+        self.velocity_y
     }
     fn height(&self) -> f64 {
         self.y
