@@ -40,7 +40,6 @@ impl Vec2 {
         (*self - other).len()
     }
 
-<<<<<<< HEAD
     fn th(&self) -> AngDeg {
         AngDeg{degree:(self.normalize().y).atan2(self.normalize().x) * RAD2DEG}
     }
@@ -48,10 +47,6 @@ impl Vec2 {
     fn is_valid(&self) -> bool {
         (self.x - INVALID_).abs() > std::f64::EPSILON &&
         (self.y - INVALID_).abs() > std::f64::EPSILON
-=======
-    fn th(self) -> AngDeg {
-        AngDeg{degree:(self.normalize().y).atan2(self.normalize().x )* 180.0 / 3.1415}
->>>>>>> origin/kickV2
     }
 
     fn rotate(&mut self, deg: f64) -> Vec2 {
