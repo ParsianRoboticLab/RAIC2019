@@ -1,13 +1,17 @@
 use crate::model::*;
 use crate::strategy::Strategy;
 
-
-
+const TWO_PI : f64 = 2.0 * std::f64::consts::PI;
+const EPSILON : f64 = 1.0e-6;
 include!("pid.rs");
 include!("vec2.rs");
 include!("def.rs");
 include!("entity.rs");
 include!("coach.rs");
+include!("angdeg.rs");
+include!("seg2.rs");
+include!("line2.rs");
+
 
 pub struct MyStrategy{
     coach : Coach,
@@ -75,9 +79,9 @@ impl MyStrategy {
     fn kick(&mut self, target: &Vec2)  {
         let ballpos = self.game.ball.position();
         let robotpos = self.me.position();
-        let finalDir = (*target - ballpos).th();
-        let mut idealPath = (ballpos - robotpos).th();
-        let mut movementDir = ((ballpos - robotpos).th() - finalDir)*180.0/3.1415;
+        let finalDir = (*target - ballpos).th().deg();
+        let mut idealPath = (ballpos - robotpos).th().deg();
+        let mut movementDir = ((ballpos - robotpos).th().deg() - finalDir)*180.0/3.1415;
         let ballVel = self.game.ball.velocity();
         if movementDir >= 180.0 {
             movementDir -= 360.0;
@@ -97,10 +101,10 @@ impl MyStrategy {
             shift = -30.0;
         }
         let mut jump = 0.0;
-        let robotCurrentPath = self.me.velocity().th();
+        let robotCurrentPath = self.me.velocity().th().deg();
         if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0) && (self.game.ball.height() < 3.0)  {
-            idealPath = (*target - robotpos).th();
-            if ((robotCurrentPath - idealPath).abs() * 180.0 / 3.1415) < 20.0 {
+            idealPath = (*target - robotpos).th().deg();
+            if ((robotCurrentPath - idealPath).abs() * RAD2DEG) < 20.0 {
                 jump = 1000.0;
             } else {
                 jump = 0.0;
@@ -110,7 +114,7 @@ impl MyStrategy {
             idealPath = idealPath + shift*3.1415/180.0 ;
         }
         println!("ball height {}", self.game.ball.height());
-        
+
         self.set_robot_vel(idealPath ,1000.0,jump);
 
 
@@ -127,7 +131,7 @@ impl MyStrategy {
         // if robotpos.dist(*target) < ballpos.dist(*target) - 5.0{
         //     self.gtp(&avoid);
         // }
-        // else 
+        // else
         // println!("dist to ball = {}", self.me.radius);
         // if robotpos.dist(behind) > 10.0 {
         //     self.gtp(&behind);
