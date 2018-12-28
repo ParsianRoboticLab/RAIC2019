@@ -5,6 +5,8 @@ struct Vec2 {
     y: f64,
 }
 
+const VEC2INVALID : Vec2 = Vec2{x:5000.0,y:5000.0};
+
 impl Vec2 {
     fn new(x: f64, y: f64) -> Self {
         Self { x, y }
@@ -30,7 +32,7 @@ impl Vec2 {
     }
 
     fn th(self) -> AngDeg {
-        (self.normalize().y).atan2(self.normalize().x)
+        AngDeg{degree:(self.normalize().y).atan2(self.normalize().x)}
     }
 }
 
