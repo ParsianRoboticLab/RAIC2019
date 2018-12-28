@@ -44,8 +44,11 @@ impl Seg2 {
         (self.terminal - self.origin).th()
     }
 
-    // TODO : fix this
-    fn intersection(&self, other : Seg2) -> bool {
-        false
+    fn line(&self) -> Line2 {
+        Line2::new2(self.origin, self.terminal)
+    }
+
+    fn intersection(&self, other : Seg2) -> Vec2 {
+        self.line().intersection(other.line())
     }
 }

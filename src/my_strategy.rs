@@ -10,6 +10,8 @@ include!("entity.rs");
 include!("coach.rs");
 include!("angdeg.rs");
 include!("seg2.rs");
+include!("line2.rs");
+
 
 pub struct MyStrategy{
     coach : Coach,
