@@ -185,13 +185,13 @@ impl MyStrategy {
     if (target).y > self.rules.arena.depth / 2.0 {
             (target).y = self.rules.arena.depth / 2.0;
         }
-        if(target.y < self.rules.arena.depth / -2.0) {
+        if target.y < self.rules.arena.depth / -2.0 {
             target.y = self.rules.arena.depth / -2.0;
         }
-        if(target.x > self.rules.arena.width / 2.0) {
+        if target.x > self.rules.arena.width / 2.0 {
             target.x = self.rules.arena.width / 2.0;
         }
-        if(target.x < self.rules.arena.width / -2.0) {
+        if target.x < self.rules.arena.width / -2.0 {
             target.x = self.rules.arena.width / -2.0;
         }
 
