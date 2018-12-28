@@ -21,6 +21,10 @@ impl Vec2 {
     fn dist(&self, other: Self) -> f64 {
         (*self - other).len()
     }
+
+    fn th(self) -> f64 {
+        (self.normalize().y).atan2(self.normalize().x)
+    }
 }
 
 // Subtraction operation for vectors
