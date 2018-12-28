@@ -3,6 +3,7 @@ use crate::strategy::Strategy;
 
 const TWO_PI : f64 = 2.0 * std::f64::consts::PI;
 const EPSILON : f64 = 1.0e-6;
+
 include!("pid.rs");
 include!("vec2.rs");
 include!("def.rs");
@@ -63,24 +64,36 @@ impl Strategy for MyStrategy {
 
 }
 
+fn get_bisect(seg: &Seg2, vec: &Vec2) -> Seg2{
+    let ang = angle_of(&seg.origin(), vec, &seg.terminal())/AngDeg::new(2.0);
+    let v2 = seg.origin().rotateVector(-ang.deg());
+    let s = Seg2::new(*vec, v2);
+    let v3 = s.intersection(*seg);
+    println!("AAA {:?} {:?}",ang, v3);
+    Seg2::new(*vec, v3)
+}
+
 
 impl MyStrategy {
+
+
     fn gk(&mut self) {
         let ball_pos = self.game.ball.position();
         let goal_line = Seg2{
-            origin:   Vec2{x:-self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0},
-            terminal: Vec2{x: self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0}
+            origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0},
+            terminal: Vec2{x:-self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0}
         };
         let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
+        let biset = get_bisect(&goal_line, &ball_pos);
         let mut target = Vec2{x:0.0, y:-self.rules.arena.depth/2.0};
         println!("DFAS");
         if self.game.ball.velocity().y < -1.0 { // KICK
             target = goal_line.intersection(ball_seg);
-            if target.x == 5000.0 {
+            if target.is_valid() {
                 target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
             }
         } else if self.game.ball.position().y  < 1.0 {
-            target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
+            target = biset.terminal();
         }
         if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
             target.x = -self.rules.arena.goal_width/2.0 + 1.5;
@@ -89,7 +102,6 @@ impl MyStrategy {
         }
         self.gtp(&target);
 
-        println!("AAA {} {}",ball_pos.dist(self.me.position()), self.game.ball.height());
         if (ball_pos.dist(self.me.position()) < 4.0 && self.game.ball.height() > 3.0) {
             self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
         } else {
@@ -97,6 +109,7 @@ impl MyStrategy {
         }
 
     }
+
     fn ballTouchPrediction(&mut self) -> Vec2 {
         let gravity = self.rules.GRAVITY;
         let ballpos = self.game.ball.position();
@@ -119,7 +132,7 @@ impl MyStrategy {
         let robotpos = self.me.position();
         let finalDir = (*target - ballpos).th().deg();
         let mut idealPath = (ballpos - robotpos).th().deg();
-        let mut movementDir = ((ballpos - robotpos).th().deg() - finalDir)*180.0/3.1415;
+        let mut movementDir = (idealPath - finalDir);
         let ballVel = self.game.ball.velocity();
         if movementDir >= 180.0 {
             movementDir -= 360.0;
@@ -127,7 +140,7 @@ impl MyStrategy {
         if movementDir < -180.0 {
             movementDir += 360.0;
         }
-        println!("movementDir {}", movementDir );
+        println!("movementDir {}", movementDir);
 
         let mut shift = 0.0;
 
@@ -148,17 +161,15 @@ impl MyStrategy {
             if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0)   {
                 idealPath = (*target - robotpos).th().deg();
                 let sagPath = (ballpos - robotpos).th().deg();
-                if ((robotCurrentPath - sagPath).abs() * 180.0 / 3.1415) < 40.0 || self.me.velocity().len() < 0.1 {
+                if ((robotCurrentPath - sagPath).abs()) < 40.0 || self.me.velocity().len() < 0.1 {
                     jump = self.rules.ROBOT_MAX_JUMP_SPEED;
                 } else {
                     jump = 0.0;
                 }
             } else {
                 jump = 0.0;
-                idealPath = idealPath + shift*3.1415/180.0 ;
+                idealPath += shift;
             }
-
-
             self.set_robot_vel(idealPath ,100.0,jump);
         }
 

@@ -5,7 +5,16 @@ struct Vec2 {
     y: f64,
 }
 
-const VEC2INVALID : Vec2 = Vec2{x:5000.0,y:5000.0};
+const INVALID_ : f64 = 5000.0;
+const VEC2INVALID : Vec2 = Vec2{x:INVALID_,y:INVALID_};
+
+fn angle_of(a: &Vec2, o: &Vec2, b: &Vec2) -> AngDeg {
+    let a1 = Vec2::new(a.x - o.x, a.y - o.y);
+    let a2 = Vec2::new(b.x - o.x, b.y - o.y);
+    AngDeg {
+        degree: a1.th().deg() - a2.th().deg()
+    }
+}
 
 impl Vec2 {
     fn new(x: f64, y: f64) -> Self {
@@ -31,9 +40,29 @@ impl Vec2 {
         (*self - other).len()
     }
 
-    fn th(self) -> AngDeg {
-        AngDeg{degree:(self.normalize().y).atan2(self.normalize().x)}
+    fn th(&self) -> AngDeg {
+        AngDeg{degree:(self.normalize().y).atan2(self.normalize().x) * RAD2DEG}
     }
+
+    fn is_valid(&self) -> bool {
+        (self.x - INVALID_).abs() > std::f64::EPSILON &&
+        (self.y - INVALID_).abs() > std::f64::EPSILON
+    }
+
+    fn rotate(&mut self, deg: f64) -> Vec2 {
+        let c = (deg * DEG2RAD).cos();
+        let s = (deg * DEG2RAD).sin();
+        self.x = self.x * c - self.y * s;
+        self.y = self.x * s + self.y * c;
+        *self
+    }
+
+    fn rotateVector(&self, deg: f64) -> Vec2 {
+        let mut v = self.clone();
+        v.rotate(deg);
+        v
+    }
+
 }
 
 // Subtraction operation for vectors
