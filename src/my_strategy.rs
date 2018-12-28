@@ -22,7 +22,7 @@ impl Default for MyStrategy {
     fn default() -> Self {
         Self {
             coach: Coach::default(),
-            me: Robot{},
+            me: Robot{..Default::default()},
             rules: Rules{..Default::default()},
             game: Game{..Default::default()},
             action: Action{..Default::default()},
