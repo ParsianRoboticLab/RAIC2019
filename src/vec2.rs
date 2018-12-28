@@ -32,7 +32,7 @@ impl Vec2 {
     }
 
     fn th(self) -> AngDeg {
-        AngDeg{degree:(self.normalize().y).atan2(self.normalize().x)}
+        AngDeg{degree:(self.normalize().y).atan2(self.normalize().x * 180.0 / 3.1415)}
     }
 }
 

@@ -127,6 +127,7 @@ impl MyStrategy {
         if movementDir < -180.0 {
             movementDir += 360.0;
         }
+
         println!("movementDir {}", movementDir );
 
         let mut shift = 0.0;
@@ -156,7 +157,7 @@ impl MyStrategy {
                 }
             } else {
                 jump = 0.0;
-                idealPath = idealPath + shift*3.1415/180.0;
+                idealPath = (idealPath + shift)*3.1415/180.0;
             }
 
 
