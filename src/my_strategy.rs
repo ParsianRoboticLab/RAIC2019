@@ -46,7 +46,7 @@ impl Strategy for MyStrategy {
     	// Choose My Role 1. GK, 2. DEF, 3. OFF 4. SUP
         let my_role = self.coach.find_role(me, _game, _rules);
     	// Execute My Role
-        let oppGoal = Vec2::new(0.0, self.rules.arena.depth/2.0);
+        let oppGoal = Vec2::new(0.0, -self.rules.arena.depth/2.0);
 
         match my_role {
             Role::NONE =>  println!("No Role is Selected"),
@@ -85,15 +85,15 @@ impl MyStrategy {
         };
         let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
         let biset = get_bisect(&goal_line, &ball_pos);
-        let mut target = Vec2{x:0.0, y:-self.rules.arena.depth/2.0};
+        let mut target = biset.terminal();
         println!("DFAS");
         if self.game.ball.velocity().y < -1.0 { // KICK
             target = goal_line.intersection(ball_seg);
-            if target.is_valid() {
+            if !target.is_valid() {
                 target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
             }
-        } else if self.game.ball.position().y  < 1.0 {
-            target = biset.terminal();
+        } else if self.game.ball.position().y  < 0.0 {
+            target = Vec2{x:self.game.ball.position().x, y:-self.rules.arena.depth/2.0};
         }
         if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
             target.x = -self.rules.arena.goal_width/2.0 + 1.5;
@@ -101,8 +101,12 @@ impl MyStrategy {
             target.x = self.rules.arena.goal_width/2.0 - 1.5;
         }
         self.gtp(&target);
+        // let my = self.me.position();
+        // if self.game.ball.position().dist(Vec2::new(0.0, -self.rules.arena.depth/2.0)) < 20.0 && self.game.ball.velocity().len() < 2.0 {
+        //     self.kick(&((ball_pos - my) * 10.0));
+        // }
 
-        if (ball_pos.dist(self.me.position()) < 4.0 && self.game.ball.height() > 3.0) {
+        if ball_pos.dist(self.me.position()) < 3.0 && self.game.ball.height() > 2.5 {
             self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
         } else {
             self.action.jump_speed = 0.0;
@@ -132,11 +136,7 @@ impl MyStrategy {
         let robotpos = self.me.position();
         let finalDir = (*target - ballpos).th();
         let mut idealPath = (ballpos - robotpos).th().deg();
-<<<<<<< HEAD
-        let mut movementDir = (idealPath - finalDir);
-=======
         let mut movementDir = ((ballpos - robotpos).th() - finalDir).deg();
->>>>>>> origin/kickV2
         let ballVel = self.game.ball.velocity();
         if movementDir >= 180.0 {
             movementDir -= 360.0;
@@ -144,12 +144,8 @@ impl MyStrategy {
         if movementDir < -180.0 {
             movementDir += 360.0;
         }
-<<<<<<< HEAD
-        println!("movementDir {}", movementDir);
-=======
 
         println!("movementDir {}", movementDir );
->>>>>>> origin/kickV2
 
         let mut shift = 0.0;
 
@@ -165,34 +161,24 @@ impl MyStrategy {
         if self.game.ball.height() >= 4.0 && ballVel.len() > 0.0{
             let touchPrediction = self.ballTouchPrediction();
             let mut locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * (self.me.radius + self.game.ball.radius + (self.game.ball.height() - self.game.ball.radius) * 0.2) + ballVel * 0.05;
-            
+
             self.gtp(&locationByPredict);
         } else {
             if  (movementDir.abs() < 25.0)   {
                 idealPath = (*target - robotpos).th().deg();
                 let sagPath = (ballpos - robotpos).th().deg();
-<<<<<<< HEAD
-                if ((robotCurrentPath - sagPath).abs()) < 40.0 || self.me.velocity().len() < 0.1 {
-=======
                 if ((robotCurrentPath - sagPath).abs()) < 15.0 && self.me.velocity().len() > 10.0{
->>>>>>> origin/kickV2
                     jump = self.rules.ROBOT_MAX_JUMP_SPEED;
                 } else {
                     jump = 0.0;
                 }
             } else {
                 jump = 0.0;
-<<<<<<< HEAD
-                idealPath += shift;
-            }
-            self.set_robot_vel(idealPath ,100.0,jump);
-=======
                 idealPath = (idealPath + shift);
             }
 
 
-            self.set_robot_vel(idealPath*3.1415/180.0 ,100.0,jump);
->>>>>>> origin/kickV2
+            self.set_robot_vel(idealPath*DEG2RAD ,100.0,jump);
         }
 
     }
