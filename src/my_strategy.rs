@@ -1,13 +1,15 @@
 use crate::model::*;
 use crate::strategy::Strategy;
 
-
+const TWO_PI : f64 = 2.0 * std::f64::consts::PI;
 
 include!("pid.rs");
 include!("vec2.rs");
 include!("def.rs");
 include!("entity.rs");
 include!("coach.rs");
+include!("angdeg.rs");
+include!("seg2.rs");
 
 pub struct MyStrategy{
     coach : Coach,
@@ -100,7 +102,7 @@ impl MyStrategy {
         let robotCurrentPath = self.me.velocity().th();
         if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0) && (self.game.ball.height() < 3.0)  {
             idealPath = (*target - robotpos).th();
-            if ((robotCurrentPath - idealPath).abs() * 180.0 / 3.1415) < 20.0 {
+            if ((robotCurrentPath - idealPath).abs() * RAD2DEG) < 20.0 {
                 jump = 1000.0;
             } else {
                 jump = 0.0;
@@ -110,7 +112,7 @@ impl MyStrategy {
             idealPath = idealPath + shift*3.1415/180.0 ;
         }
         println!("ball height {}", self.game.ball.height());
-        
+
         self.set_robot_vel(idealPath ,1000.0,jump);
 
 
@@ -127,7 +129,7 @@ impl MyStrategy {
         // if robotpos.dist(*target) < ballpos.dist(*target) - 5.0{
         //     self.gtp(&avoid);
         // }
-        // else 
+        // else
         // println!("dist to ball = {}", self.me.radius);
         // if robotpos.dist(behind) > 10.0 {
         //     self.gtp(&behind);
