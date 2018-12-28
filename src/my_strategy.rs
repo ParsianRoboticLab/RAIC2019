@@ -156,6 +156,9 @@ impl Vec2 {
     fn normalize(self) -> Self {
         self * (1.0 / self.len())
     }
+    fn th(self) -> f64 {
+        (self.normalize().y).atan2(self.normalize().x)
+    }
 
     fn dist(&self, other: Self) -> f64 {
         (*self - other).len()
@@ -186,6 +189,7 @@ impl std::ops::Mul<f64> for Vec2 {
     }
 }
 
+/////////////////
 // Common interface for ball and robots
 trait Entity {
     // Position of the entity in XZ plane
@@ -300,12 +304,12 @@ impl Strategy for MyStrategy {
         self.me = me.clone();
         self.rules = _rules.clone();
         self.game = _game.clone();
-
         self.coach.choose_mode(_game, _rules);
     	// Choose My Role 1. GK, 2. DEF, 3. OFF 4. SUP
         let my_role = self.coach.find_role(me, _game, _rules);
     	// Execute My Role
         let oppGoal = Vec2::new(0.0, self.rules.arena.depth/2.0);
+
         match my_role {
             Role::NONE =>  println!("No Role is Selected"),
             Role::GK   =>  self.gk(),
@@ -322,6 +326,7 @@ impl Strategy for MyStrategy {
 
 }
 
+
 impl MyStrategy {
     fn gk(&mut self) {
         let mut x = self.game.ball.position().x;
@@ -334,23 +339,70 @@ impl MyStrategy {
         self.gtp(&v);
     }
 
-    fn pm(&mut self, target: &Vec2) {
+    fn kick(&mut self, target: &Vec2)  {
         let ballpos = self.game.ball.position();
-        let robotpos = self.me.position() + self.me.velocity();
-        let norm = (ballpos - *target).normalize();
-        let behind = ballpos + (ballpos - *target).normalize()*3.0;
-        let goal = ballpos - (ballpos - *target).normalize()*3.0;
-        let avoid = ballpos + Vec2::new(4.0, 0.0);
-        /*if robotpos.dist(*target) < ballpos.dist(*target) - 5.0{
-            self.gtp(&avoid);
+        let robotpos = self.me.position();
+        let finalDir = (*target - ballpos).th();
+        let mut idealPath = (ballpos - robotpos).th();
+        let mut movementDir = ((ballpos - robotpos).th() - finalDir)*180.0/3.1415;
+        let ballVel = self.game.ball.velocity();
+        if movementDir >= 180.0 {
+            movementDir -= 360.0;
         }
-        else */if robotpos.dist(behind) > 10.0 {
-            self.gtp(&behind);
-            println!("SALAM");
+        if movementDir < -180.0 {
+            movementDir += 360.0;
+        }
+        println!("movementDir {}", movementDir );
+
+        let mut shift = 0.0;
+
+        if movementDir.abs() < 5.0 {
+            shift = 0.0;
+        } else if movementDir > 0.0 {
+            shift = 30.0;
         } else {
-            println!("BYE");
-            self.gtp(&goal);
+            shift = -30.0;
         }
+        let mut jump = 0.0;
+        let robotCurrentPath = self.me.velocity().th();
+        if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0) && (self.game.ball.height() < 3.0)  {
+            idealPath = (*target - robotpos).th();
+            if ((robotCurrentPath - idealPath).abs() * 180.0 / 3.1415) < 20.0 {
+                jump = 1000.0;
+            } else {
+                jump = 0.0;
+            }
+        } else {
+            jump = 0.0;
+            idealPath = idealPath + shift*3.1415/180.0 ;
+        }
+        println!("ball height {}", self.game.ball.height());
+        
+        self.set_robot_vel(idealPath ,1000.0,jump);
+
+
+    }
+    fn pm(&mut self, target: &Vec2) {
+        self.kick(target);
+        // let ballpos = self.game.ball.position();
+
+        // let robotpos = self.me.position() + self.me.velocity();
+        // let _norm = (ballpos - *target).normalize();
+        // let behind = ballpos + (ballpos - *target).normalize()*3.0;
+        // let goal = ballpos - (ballpos - *target).normalize()*3.0;
+        // let _avoid = ballpos + Vec2::new(4.0, 0.0);
+        // if robotpos.dist(*target) < ballpos.dist(*target) - 5.0{
+        //     self.gtp(&avoid);
+        // }
+        // else 
+        // println!("dist to ball = {}", self.me.radius);
+        // if robotpos.dist(behind) > 10.0 {
+        //     self.gtp(&behind);
+        //     println!("SALAM");
+        // } else {
+        //     println!("BYE");
+        //     self.gtp(&goal);
+        // }
 
     }
 
@@ -360,16 +412,16 @@ impl MyStrategy {
         let angle = (diff.y).atan2(diff.x);
         let a  = self.posPID.run(dist);
         println!("{}**{}**{}", dist, angle, a);
-        self.set_robot_vel(angle, a);
+        self.set_robot_vel(angle, a , 0.0);
 
     }
 
-    fn set_robot_vel(&mut self, angle : f64, vel: f64) {
+    fn set_robot_vel(&mut self, angle : f64, vel: f64, jump : f64) {
         self.action = Action {
             target_velocity_x: vel*angle.cos(),
             target_velocity_y: 0.0,
             target_velocity_z: vel*angle.sin(),
-            jump_speed: 0.0,
+            jump_speed: jump,
             use_nitro: false,
         }
     }
