@@ -1,6 +1,8 @@
 use crate::model::*;
 use crate::strategy::Strategy;
 
+include!("pid.rs");
+
 impl Default for Arena {
     fn default() -> Self {
         Self {
@@ -104,36 +106,6 @@ impl Default for Game {
             nitro_packs: Vec::new(),
             ball: Ball{..Default::default()}
         }
-    }
-}
-
-
-struct PID {
-    kp : f64,
-    ki : f64,
-    kd : f64,
-    sum : f64,
-    last: f64,
-}
-
-impl Default for PID {
-    fn default() -> Self {
-        Self{
-            kp:0.0,
-            ki:0.0,
-            kd:0.0,
-            sum:0.0,
-            last:0.0,
-        }
-    }
-}
-
-impl PID {
-    fn run(&mut self, err: f64) -> f64 {
-        self.sum += err;
-        let res = (self.kp * err) + (self.ki * self.sum) + (self.kd * (err - self.last));
-        self.last = err;
-        res
     }
 }
 
@@ -283,13 +255,7 @@ impl Default for MyStrategy {
             rules: Rules{..Default::default()},
             game: Game{..Default::default()},
             action: Action{..Default::default()},
-            posPID: PID{
-                kp:15.0,
-                ki:0.0,
-                kd:0.0,
-                sum:0.0,
-                last:0.0
-            }
+            posPID: PID::new(15.0,0.0,0.0),
         }
     }
 }
