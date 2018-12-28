@@ -147,21 +147,21 @@ impl MyStrategy {
             
             self.gtp(&locationByPredict);
         } else {
-            if  (movementDir.abs() < 10.0)   {
+            if  (movementDir.abs() < 25.0)   {
                 idealPath = (*target - robotpos).th().deg();
                 let sagPath = (ballpos - robotpos).th().deg();
-                if ((robotCurrentPath - sagPath).abs()) < 25.0 && self.me.velocity().len() > 15.0{
+                if ((robotCurrentPath - sagPath).abs()) < 15.0 && self.me.velocity().len() > 10.0{
                     jump = self.rules.ROBOT_MAX_JUMP_SPEED;
                 } else {
                     jump = 0.0;
                 }
             } else {
                 jump = 0.0;
-                idealPath = (idealPath + shift)*3.1415/180.0;
+                idealPath = (idealPath + shift);
             }
 
 
-            self.set_robot_vel(idealPath ,100.0,jump);
+            self.set_robot_vel(idealPath*3.1415/180.0 ,100.0,jump);
         }
 
     }
