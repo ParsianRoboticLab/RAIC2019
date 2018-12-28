@@ -79,7 +79,6 @@ impl MyStrategy {
             if target.x == 5000.0 {
                 target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
             }
-            println!("TARTAR: {:?}", target);
         } else if self.game.ball.position().y  < 1.0 {
             target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
         }
@@ -89,6 +88,14 @@ impl MyStrategy {
             target.x = self.rules.arena.goal_width/2.0 - 1.5;
         }
         self.gtp(&target);
+
+        println!("AAA {} {}",ball_pos.dist(self.me.position()), self.game.ball.height());
+        if (ball_pos.dist(self.me.position()) < 4.0 && self.game.ball.height() > 3.0) {
+            self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
+        } else {
+            self.action.jump_speed = 0.0;
+        }
+
     }
     fn ballTouchPrediction(&mut self) -> Vec2 {
         let gravity = self.rules.GRAVITY;
