@@ -132,15 +132,15 @@ impl MyStrategy {
             shift = -30.0;
         }
         let mut jump = 0.0;
-        let robotCurrentPath = self.me.velocity().th();
+        let robotCurrentPath = self.me.velocity().th().deg();
         if self.game.ball.height() >= 3.5 {
             let touchPrediction = self.ballTouchPrediction();
             let locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * 3.5;
             self.gtp(&locationByPredict);
         } else {
             if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0)   {
-                idealPath = (*target - robotpos).th();
-                let sagPath = (ballpos - robotpos).th();
+                idealPath = (*target - robotpos).th().deg();
+                let sagPath = (ballpos - robotpos).th().deg();
                 if ((robotCurrentPath - sagPath).abs() * 180.0 / 3.1415) < 40.0 || self.me.velocity().len() < 0.1 {
                     jump = self.rules.ROBOT_MAX_JUMP_SPEED;
                 } else {
