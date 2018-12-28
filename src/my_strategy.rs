@@ -128,11 +128,15 @@ impl MyStrategy {
         }
     }
     fn kick(&mut self, target: &Vec2)  {
-        let ballpos = self.game.ball.position();
+          let ballpos = self.game.ball.position();
         let robotpos = self.me.position();
-        let finalDir = (*target - ballpos).th().deg();
+        let finalDir = (*target - ballpos).th();
         let mut idealPath = (ballpos - robotpos).th().deg();
+<<<<<<< HEAD
         let mut movementDir = (idealPath - finalDir);
+=======
+        let mut movementDir = ((ballpos - robotpos).th() - finalDir).deg();
+>>>>>>> origin/kickV2
         let ballVel = self.game.ball.velocity();
         if movementDir >= 180.0 {
             movementDir -= 360.0;
@@ -140,7 +144,12 @@ impl MyStrategy {
         if movementDir < -180.0 {
             movementDir += 360.0;
         }
+<<<<<<< HEAD
         println!("movementDir {}", movementDir);
+=======
+
+        println!("movementDir {}", movementDir );
+>>>>>>> origin/kickV2
 
         let mut shift = 0.0;
 
@@ -153,24 +162,37 @@ impl MyStrategy {
         }
         let mut jump = 0.0;
         let robotCurrentPath = self.me.velocity().th().deg();
-        if self.game.ball.height() >= 3.5 {
+        if self.game.ball.height() >= 4.0 && ballVel.len() > 0.0{
             let touchPrediction = self.ballTouchPrediction();
-            let locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * 3.5;
+            let mut locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * (self.me.radius + self.game.ball.radius + (self.game.ball.height() - self.game.ball.radius) * 0.2) + ballVel * 0.05;
+            
             self.gtp(&locationByPredict);
         } else {
-            if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0)   {
+            if  (movementDir.abs() < 25.0)   {
                 idealPath = (*target - robotpos).th().deg();
                 let sagPath = (ballpos - robotpos).th().deg();
+<<<<<<< HEAD
                 if ((robotCurrentPath - sagPath).abs()) < 40.0 || self.me.velocity().len() < 0.1 {
+=======
+                if ((robotCurrentPath - sagPath).abs()) < 15.0 && self.me.velocity().len() > 10.0{
+>>>>>>> origin/kickV2
                     jump = self.rules.ROBOT_MAX_JUMP_SPEED;
                 } else {
                     jump = 0.0;
                 }
             } else {
                 jump = 0.0;
+<<<<<<< HEAD
                 idealPath += shift;
             }
             self.set_robot_vel(idealPath ,100.0,jump);
+=======
+                idealPath = (idealPath + shift);
+            }
+
+
+            self.set_robot_vel(idealPath*3.1415/180.0 ,100.0,jump);
+>>>>>>> origin/kickV2
         }
 
     }
