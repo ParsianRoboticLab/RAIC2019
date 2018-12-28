@@ -30,7 +30,7 @@ impl Default for MyStrategy {
             rules: Rules{..Default::default()},
             game: Game{..Default::default()},
             action: Action{..Default::default()},
-            posPID: PID::new(15.0,0.0,0.0),
+            posPID: PID::new(10.0,0.0,0.0),
         }
     }
 }
@@ -66,14 +66,29 @@ impl Strategy for MyStrategy {
 
 impl MyStrategy {
     fn gk(&mut self) {
-        let mut x = self.game.ball.position().x;
-        if x < -self.rules.arena.goal_width/2.0 {
-            x = -self.rules.arena.goal_width/2.0;
-        } else if x > self.rules.arena.goal_width/2.0 {
-            x = self.rules.arena.goal_width/2.0;
+        let ball_pos = self.game.ball.position();
+        let goal_line = Seg2{
+            origin:   Vec2{x:-self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0},
+            terminal: Vec2{x: self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0}
+        };
+        let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
+        let mut target = Vec2{x:0.0, y:-self.rules.arena.depth/2.0};
+        println!("DFAS");
+        if self.game.ball.velocity().y < -1.0 { // KICK
+            target = goal_line.intersection(ball_seg);
+            if target.x == 5000.0 {
+                target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
+            }
+            println!("TARTAR: {:?}", target);
+        } else if self.game.ball.position().y  < 1.0 {
+            target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
         }
-        let v = Vec2::new(x, -self.rules.arena.depth/2.0);
-        self.gtp(&v);
+        if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
+            target.x = -self.rules.arena.goal_width/2.0 + 1.5;
+        } else if target.x > self.rules.arena.goal_width/2.0 - 1.5{
+            target.x = self.rules.arena.goal_width/2.0 - 1.5;
+        }
+        self.gtp(&target);
     }
 
     fn kick(&mut self, target: &Vec2)  {
@@ -113,33 +128,15 @@ impl MyStrategy {
             jump = 0.0;
             idealPath = idealPath + shift*3.1415/180.0 ;
         }
-        println!("ball height {}", self.game.ball.height());
-
+        println!("ball height: {}", self.game.ball.height());
         self.set_robot_vel(idealPath ,1000.0,jump);
+        println!("DDD");
+
 
 
     }
     fn pm(&mut self, target: &Vec2) {
         self.kick(target);
-        // let ballpos = self.game.ball.position();
-
-        // let robotpos = self.me.position() + self.me.velocity();
-        // let _norm = (ballpos - *target).normalize();
-        // let behind = ballpos + (ballpos - *target).normalize()*3.0;
-        // let goal = ballpos - (ballpos - *target).normalize()*3.0;
-        // let _avoid = ballpos + Vec2::new(4.0, 0.0);
-        // if robotpos.dist(*target) < ballpos.dist(*target) - 5.0{
-        //     self.gtp(&avoid);
-        // }
-        // else
-        // println!("dist to ball = {}", self.me.radius);
-        // if robotpos.dist(behind) > 10.0 {
-        //     self.gtp(&behind);
-        //     println!("SALAM");
-        // } else {
-        //     println!("BYE");
-        //     self.gtp(&goal);
-        // }
 
     }
 

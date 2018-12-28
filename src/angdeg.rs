@@ -104,3 +104,12 @@ impl std::ops::DivAssign for AngDeg {
         self.normalize();
     }
 }
+
+impl std::ops::Neg for AngDeg {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self {
+            degree: -self.degree
+        }.normalize()
+    }
+}
