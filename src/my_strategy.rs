@@ -2,7 +2,7 @@ use crate::model::*;
 use crate::strategy::Strategy;
 
 const TWO_PI : f64 = 2.0 * std::f64::consts::PI;
-
+const EPSILON : f64 = 1.0e-6;
 include!("pid.rs");
 include!("vec2.rs");
 include!("def.rs");
@@ -77,9 +77,9 @@ impl MyStrategy {
     fn kick(&mut self, target: &Vec2)  {
         let ballpos = self.game.ball.position();
         let robotpos = self.me.position();
-        let finalDir = (*target - ballpos).th();
-        let mut idealPath = (ballpos - robotpos).th();
-        let mut movementDir = ((ballpos - robotpos).th() - finalDir)*180.0/3.1415;
+        let finalDir = (*target - ballpos).th().deg();
+        let mut idealPath = (ballpos - robotpos).th().deg();
+        let mut movementDir = ((ballpos - robotpos).th().deg() - finalDir)*180.0/3.1415;
         let ballVel = self.game.ball.velocity();
         if movementDir >= 180.0 {
             movementDir -= 360.0;
@@ -99,9 +99,9 @@ impl MyStrategy {
             shift = -30.0;
         }
         let mut jump = 0.0;
-        let robotCurrentPath = self.me.velocity().th();
+        let robotCurrentPath = self.me.velocity().th().deg();
         if (robotpos.dist(ballpos) < (self.me.radius + self.game.ball.radius + 1.5)) && (movementDir.abs() < 15.0) && (self.game.ball.height() < 3.0)  {
-            idealPath = (*target - robotpos).th();
+            idealPath = (*target - robotpos).th().deg();
             if ((robotCurrentPath - idealPath).abs() * RAD2DEG) < 20.0 {
                 jump = 1000.0;
             } else {

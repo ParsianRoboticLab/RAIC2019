@@ -1,5 +1,5 @@
 // We will need to work with 2d vertors
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 struct Vec2 {
     x: f64,
     y: f64,
@@ -8,6 +8,13 @@ struct Vec2 {
 impl Vec2 {
     fn new(x: f64, y: f64) -> Self {
         Self { x, y }
+    }
+
+    fn from_polar(mag: f64, theta: AngDeg) -> Self{
+        Self {
+            x: mag * theta.deg().cos(),
+            y: mag * theta.deg().sin(),
+        }
     }
     // Finding length of the vector
     fn len(&self) -> f64 {
@@ -22,7 +29,7 @@ impl Vec2 {
         (*self - other).len()
     }
 
-    fn th(self) -> f64 {
+    fn th(self) -> AngDeg {
         (self.normalize().y).atan2(self.normalize().x)
     }
 }
