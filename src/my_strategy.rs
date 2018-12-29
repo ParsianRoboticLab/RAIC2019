@@ -14,6 +14,7 @@ include!("seg2.rs");
 include!("line2.rs");
 include!("simulation.rs");
 include!("vec3.rs");
+include!("entity3.rs");
 
 pub struct MyStrategy{
     coach : Coach,
