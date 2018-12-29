@@ -15,6 +15,7 @@ include!("line2.rs");
 include!("simulation.rs");
 include!("vec3.rs");
 include!("entity3.rs");
+include!("circle2.rs");
 
 pub struct MyStrategy{
     coach : Coach,
@@ -262,7 +263,7 @@ fn gtp(&mut self, targetMain: & Vec2) {
     let a  = self.posPID.run(dist);
     println!("{}**{}**{}", dist, angle, a);
     self.set_robot_vel(angle, a , 0.0);
-    
+
 
 }
 
