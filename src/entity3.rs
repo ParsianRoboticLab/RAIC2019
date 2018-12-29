@@ -1,68 +1,69 @@
 // Common interface for ball and robots
 trait Entity3 {
     // Position of the entity in XZ plane
-    fn position(&self) -> Vec3;
+    fn position3(&self) -> Vec3;
     // Velocity of the entity in XZ plane
-    fn velocity(&self) -> Vec3;
+    fn velocity3(&self) -> Vec3;
     // Radius of object
     fn radius(&self) -> f64;
     // mass
-    fn mass() -> f64;
+    fn mass(&self) -> f64;
 
     fn set_position(&mut self, p : &Vec3);
     fn set_velocity(&mut self, v : &Vec3);
-    fn max_speed() -> f64;
-    fn arena_e() -> f64;
     fn set_height(&mut self, h: f64);
-    fn height(&self);
+
+    fn max_speed(&self) -> f64;
+    fn arena_e(&self) -> f64;
+    fn height3(&self) -> f64;
 }
 
 impl Entity3 for Robot {
-    fn position(&self) -> Vec2 {
+    fn position3(&self) -> Vec3 {
         Vec3::new(self.x, self.z, self.y)
     }
-    fn velocity(&self) -> Vec2 {
-        Vec2::new(self.velocity_x, self.velocity_z, self.velocity_y)
+    fn velocity3(&self) -> Vec3 {
+        Vec3::new(self.velocity_x, self.velocity_z, self.velocity_y)
     }
     fn radius(&self) -> f64 {
         self.radius
     }
 
-    fn mass() -> f64 {
+    fn mass(&self) -> f64 {
         2.0
     }
-    fn set_position(&mut self) {
+    fn set_position(&mut self, p: &Vec3) {
         self.x = p.x;
-        self.y = p.y;
-        self.z = p.z;
+        self.y = p.h;
+        self.z = p.y;
     }
     fn set_velocity(&mut self, v : &Vec3) {
         self.velocity_x = v.x;
-        self.velocity_y = v.y;
-        self.velocity_z = v.z;
+        self.velocity_y = v.h;
+        self.velocity_z = v.y;
     }
-    fn height(&self) {
+    fn height3(&self) -> f64{
         self.y
     }
     fn set_height(&mut self, h: f64) {
         self.y = h;
     }
 
-    fn max_speed() {
+    fn max_speed(&self) -> f64{
         100.0
     }
-    fn arena_e() {
+    fn arena_e(&self) -> f64 {
         0.0
     }
 
 }
 
 impl Entity3 for Ball {
-    fn position(&self) -> Vec2 {
+    fn position3(&self) -> Vec3 {
         Vec3::new(self.x, self.z, self.y)
     }
-    fn velocity(&self) -> Vec2 {
-        Vec2::new(self.velocity_x, self.velocity_z, self.velocity_y)
+    fn velocity3(&self) -> Vec3 {
+        Vec3::new(self.velocity_x, self.velocity_z, self.velocity_y)
     }
     fn radius(&self) -> f64 {
         self.radius
@@ -71,23 +72,26 @@ impl Entity3 for Ball {
     fn mass(&self) -> f64 {
         1.0
     }
-    fn set_position(&mut self) {
+    fn set_position(&mut self, p: &Vec3) {
         self.x = p.x;
-        self.y = p.y;
-        self.z = p.z;
+        self.y = p.h;
+        self.z = p.y;
+    }
+    fn max_speed(&self) -> f64{
+        100.0
     }
     fn set_velocity(&mut self, v : &Vec3) {
         self.velocity_x = v.x;
-        self.velocity_y = v.y;
-        self.velocity_z = v.z;
+        self.velocity_y = v.h;
+        self.velocity_z = v.y;
     }
-    fn arena_e() {
+    fn arena_e(&self) -> f64{
         0.7
     }
     fn set_height(&mut self, h: f64) {
         self.y = h;
     }
-    fn height(&self) {
+    fn height3(&self) -> f64{
         self.y
     }
 }
