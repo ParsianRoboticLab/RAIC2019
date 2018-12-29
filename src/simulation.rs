@@ -11,10 +11,6 @@ impl Simulation {
         *_v
     }
 
-    fn dan_to_arena(_v : &Vec3) -> (f64, Vec3) {
-        (0.0, VEC3INVALID)
-    }
-
     fn collide_entities(_a: &mut Entity3, _b: &mut Entity3, _radius_change_speed: f64, _rules: &Rules) {
         let delta_position = _b.position3() - _a.position3();
         let distance = delta_position.len();
@@ -39,8 +35,8 @@ impl Simulation {
         }
     }
 
-    fn collide_with_arena(_e: &mut Entity3, _radius_change_speed: f64) -> Vec3 {
-        let (distance, normal) = Self::dan_to_arena(&_e.position3());
+    fn collide_with_arena(_e: &mut Entity3, _radius_change_speed: f64, _rules: &Rules) -> Vec3 {
+        let (distance, normal) = DAN::dan_to_arena(&_e.position3(), _rules);
         let penetration = _e.radius() - distance;
         if penetration > 0.0 {
             let pos = _e.position3();
@@ -84,14 +80,14 @@ impl Simulation {
             }
             Self::move_e(_ball, delta_time, _rules);
             Self::collide_entities(_me, _ball, _action.jump_speed, _rules);
-            let collision_normal = Self::collide_with_arena(_me, _action.jump_speed);
+            let collision_normal = Self::collide_with_arena(_me, _action.jump_speed, _rules);
             if ! collision_normal.is_valid() {
                 _me.touch = false;
             } else {
                 _me.touch = true;
                 _me.set_touch_normal(&collision_normal);
             }
-            Self::collide_with_arena(_ball, 0.0);
+            Self::collide_with_arena(_ball, 0.0, _rules);
     }
 
     fn tick(_me : &mut Robot, _ball: &mut Ball, _action: &Action, _rules: &Rules) {

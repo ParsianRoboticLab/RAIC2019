@@ -21,6 +21,11 @@ impl Vec2 {
         Self { x, y }
     }
 
+    fn assign(&mut self, x: f64, y:f64) {
+        self.x = x;
+        self.y = y;
+    }
+
     fn from_polar(mag: f64, theta: AngDeg) -> Self{
         Self {
             x: mag * theta.deg().cos(),
@@ -37,7 +42,11 @@ impl Vec2 {
     }
 
     fn dist(&self, other: Self) -> f64 {
-        (*self - other).len()
+        self.dist2(other).sqrt()
+    }
+
+    fn dist2(&self, other: Self) -> f64 {
+        (self.x - other.x) * (self.x - other.x) + (self.y - other.y) * (self.y - other.y)
     }
 
     fn th(&self) -> AngDeg {

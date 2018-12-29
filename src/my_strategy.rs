@@ -17,6 +17,8 @@ include!("dan.rs");
 include!("circle2.rs");
 include!("vec3.rs");
 include!("entity3.rs");
+include!("circle2.rs");
+include!("dan.rs");
 
 pub struct MyStrategy{
     coach : Coach,
@@ -80,15 +82,16 @@ fn get_bisect(seg: &Seg2, vec: &Vec2) -> Seg2{
 }
 
 
+
 impl MyStrategy {
 
 
     fn gk(&mut self) {
-        let y_goal = -self.rules.arena.depth/2.0 + 3.0;
+        let y_goal = self.rules.arena.depth/-2.0 + 3.0;
         let ball_pos = self.game.ball.position();
         let goal_line = Seg2{
             origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:y_goal},
-            terminal: Vec2{x:-self.rules.arena.goal_width/2.0, y:y_goal}
+            terminal: Vec2{x:self.rules.arena.goal_width/-2.0, y:y_goal}
         };
         let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
         let biset = get_bisect(&goal_line, &ball_pos);
@@ -101,8 +104,8 @@ impl MyStrategy {
         } else if self.game.ball.position().y  < 0.0 {
             target = Vec2{x:self.game.ball.position().x, y:y_goal};
         }
-        if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
-            target.x = -self.rules.arena.goal_width/2.0 + 1.5;
+        if target.x < self.rules.arena.goal_width/-2.0 + 1.5 {
+            target.x =self.rules.arena.goal_width/-2.0 + 1.5;
         } else if target.x > self.rules.arena.goal_width/2.0 - 1.5{
             target.x = self.rules.arena.goal_width/2.0 - 1.5;
         }
@@ -146,6 +149,7 @@ impl MyStrategy {
         let ballPos = self.game.ball.position();
         ballPos + self.game.ball.velocity() * t
     }
+
     fn kick(&mut self, target: &Vec2)  {
         let ballpos = self.game.ball.position();
         let robotpos = self.me.position();
