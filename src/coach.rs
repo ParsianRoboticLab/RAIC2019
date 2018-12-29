@@ -31,9 +31,11 @@ impl Coach {
     }
 
     fn find_role(&mut self, me: &Robot, _game: &Game, _rules: &Rules) -> Role {
+		let our_goal = Vec2::new(0.0, -_rules.arena.depth/2.0);
         for robot in &_game.robots {
             if robot.is_teammate && robot.id != me.id {
-                if robot.position().y < me.position().y {
+                if robot.position().dist(_game.ball.position() - Vec2::new(0.0, -4.0)) > me.position().dist(_game.ball.position() - Vec2::new(0.0, -4.0)) &&
+				 robot.position().dist(our_goal) < me.position().dist(our_goal) + 10.0 {
                      return Role::OFF
                 } else {
                     return Role::GK

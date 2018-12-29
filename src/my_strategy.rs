@@ -80,10 +80,11 @@ impl MyStrategy {
 
 
     fn gk(&mut self) {
-        let ball_pos = self.game.ball.position() + self.game.ball.velocity() * 0.1;
+        let y_goal = -self.rules.arena.depth/2.0 + 3.0;
+        let ball_pos = self.game.ball.position();
         let goal_line = Seg2{
-            origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0},
-            terminal: Vec2{x:-self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0}
+            origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:y_goal},
+            terminal: Vec2{x:-self.rules.arena.goal_width/2.0, y:y_goal}
         };
         let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
         let biset = get_bisect(&goal_line, &ball_pos);
@@ -91,10 +92,10 @@ impl MyStrategy {
         if self.game.ball.velocity().y < -1.0 { // KICK
             target = goal_line.intersection(ball_seg);
             if !target.is_valid() {
-                target = Vec2::new(ball_pos.x, -self.rules.arena.depth/2.0);
+                target = Vec2::new(ball_pos.x, y_goal);
             }
         } else if self.game.ball.position().y  < 0.0 {
-            target = Vec2{x:self.game.ball.position().x, y:-self.rules.arena.depth/2.0};
+            target = Vec2{x:self.game.ball.position().x, y:y_goal};
         }
         if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
             target.x = -self.rules.arena.goal_width/2.0 + 1.5;
