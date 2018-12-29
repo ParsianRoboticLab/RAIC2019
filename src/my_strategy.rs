@@ -176,12 +176,13 @@ impl MyStrategy {
         }
         let mut jump = 0.0;
         let robotCurrentPath = self.me.velocity().th().deg();
+        let mut new_ball = &mut self.game.ball.clone();
         ////////
-        let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius - 0.5);
+        let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
 //kickoff
         if ballVel.len() <= 0.000000001 {
             idealPath = (tochPoint - robotpos).th().deg();
-            if robotvel.len() > 25.0 {
+            if robotvel.len() > 25.0  {
                 jump = self.game.ball.height() *4.0;
             }
             self.set_robot_vel(idealPath*3.1415/180.0 , 100.0 ,jump);
@@ -190,16 +191,25 @@ impl MyStrategy {
             if self.game.ball.height() >= 6.0 {
                 let touchPrediction = self.ballTouchPrediction();
                 let mut locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * (0.1 + self.me.radius + self.game.ball.radius + (self.game.ball.height() - self.game.ball.radius) * 0.2) + ballVel * 0.05;
-
                 self.gtp(&locationByPredict);
             } else {
 
 ////// New prediction
                 if ballVel.len() > 0.5 && movementDir.abs() < 70.0 {
-                    for i in 1..100 {
-                        let m = i as f64 * 0.1;
-                        let bPIF = self.ballPosInTheFuture(m) + (self.ballPosInTheFuture(m) - *target).normalize()*(self.game.ball.radius - 0.5);
-                        if (self.travelTime(&bPIF) - m) < 0.01 {
+                    let mut ballPath = [Vec2::new(0.0,0.0) ; 600];
+                    let mut ballH = [0.0 ; 600];
+                    for j in 0..599 {
+                            Simulation::tick_ball(new_ball, &self.rules, 1.0); 
+                            ballPath[j] = new_ball.position();   
+                            ballH[j] = new_ball.height();
+                        }
+
+                    println!("ball prediction : {}", ballPath[0].y); 
+                        
+                    for i in 0..599 {
+                        
+                        let bPIF = ballPath[i]+ (ballPath[i] - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
+                        if (self.travelTime(&bPIF) - ((i as f64) / 60.0)) < 0.01 && (ballH[i] < 3.0) {
                             tochPoint = bPIF;
                             // while true {
                             //     println!("I'm the god {}",m);

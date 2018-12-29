@@ -104,8 +104,8 @@ impl Simulation {
 
     fn tick_ball(_ball: &mut Ball, _rules: &Rules, _time: f64) {
         let delta_time = _time / _rules.TICKS_PER_SECOND as f64;
-        for _ in 0 .. _rules.MICROTICKS_PER_TICK - 1 {
-            Self::update_ball(_ball, _rules, delta_time / _rules.MICROTICKS_PER_TICK as f64);
+        for _ in 0 .. 30 - 1 {
+            Self::update_ball(_ball, _rules, delta_time / 30 as f64);
         }
     }
 }
