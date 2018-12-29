@@ -50,6 +50,13 @@ impl std::ops::Sub for Vec3 {
     }
 }
 
+// Subtraction operation for vectors
+impl std::ops::SubAssign for Vec3 {
+    fn sub_assign(&mut self, b: Self) {
+        *self = Self::new(self.x - b.x, self.y - b.y, self.h - b.h)
+    }
+}
+
 // Addition for vectors
 impl std::ops::Add for Vec3 {
     type Output = Self;
