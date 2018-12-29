@@ -5,7 +5,7 @@ trait Entity3 {
     // Velocity of the entity in XZ plane
     fn velocity3(&self) -> Vec3;
     // Touch normal
-    fn touch_noraml(&self) -> Vec3;
+    fn touch_normal(&self) -> Vec3;
     // Radius of object
     fn radius(&self) -> f64;
     // mass
@@ -14,6 +14,8 @@ trait Entity3 {
     fn set_position(&mut self, p : &Vec3);
     fn set_velocity(&mut self, v : &Vec3);
     fn set_height(&mut self, h: f64);
+    fn set_touch_normal(&mut self, v : &Vec3);
+
 
     fn max_speed(&self) -> f64;
     fn arena_e(&self) -> f64;
@@ -58,12 +60,17 @@ impl Entity3 for Robot {
         0.0
     }
 
-    fn touch_noraml(&self) -> Vec3 {
+    fn touch_normal(&self) -> Vec3 {
         Vec3 {
             x: self.touch_normal_x.unwrap(),
             y: self.touch_normal_z.unwrap(),
             h: self.touch_normal_y.unwrap(),
         }
+    }
+    fn set_touch_normal(&mut self, v: &Vec3) {
+        self.touch_normal_x = Some(v.x);
+        self.touch_normal_y = Some(v.h);
+        self.touch_normal_z = Some(v.y);
     }
 
 }
@@ -104,7 +111,11 @@ impl Entity3 for Ball {
     fn height3(&self) -> f64{
         self.y
     }
-    fn touch_noraml(&self) -> Vec3 {
+    fn touch_normal(&self) -> Vec3 {
         VEC3INVALID
     }
+    fn set_touch_normal(&mut self, v: &Vec3) {
+
+    }
+
 }
