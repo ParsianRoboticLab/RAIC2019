@@ -63,6 +63,9 @@ impl Vec2 {
         v
     }
 
+    fn inner_product(&self, p: &Vec2) -> f64 {
+        self.x * p.x + self.y * p.y
+    }
 }
 
 // Subtraction operation for vectors

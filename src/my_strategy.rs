@@ -46,7 +46,7 @@ impl Strategy for MyStrategy {
     	// Choose My Role 1. GK, 2. DEF, 3. OFF 4. SUP
         let my_role = self.coach.find_role(me, _game, _rules);
     	// Execute My Role
-        let oppGoal = Vec2::new(0.0, -self.rules.arena.depth/2.0);
+        let oppGoal = Vec2::new(0.0, self.rules.arena.depth/2.0 + 20.0);
 
         match my_role {
             Role::NONE =>  println!("No Role is Selected"),
@@ -69,7 +69,9 @@ fn get_bisect(seg: &Seg2, vec: &Vec2) -> Seg2{
     let v2 = seg.origin().rotateVector(-ang.deg());
     let s = Seg2::new(*vec, v2);
     let v3 = s.intersection(*seg);
-    println!("AAA {:?} {:?}",ang, v3);
+    if ! v3.is_valid() {
+        return Seg2::new(*vec, (seg.origin() + seg.terminal()) * 0.5)
+    }
     Seg2::new(*vec, v3)
 }
 
@@ -78,7 +80,7 @@ impl MyStrategy {
 
 
     fn gk(&mut self) {
-        let ball_pos = self.game.ball.position();
+        let ball_pos = self.game.ball.position() + self.game.ball.velocity() * 0.1;
         let goal_line = Seg2{
             origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0},
             terminal: Vec2{x:-self.rules.arena.goal_width/2.0, y:-self.rules.arena.depth/2.0}
@@ -86,7 +88,6 @@ impl MyStrategy {
         let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
         let biset = get_bisect(&goal_line, &ball_pos);
         let mut target = biset.terminal();
-        println!("DFAS");
         if self.game.ball.velocity().y < -1.0 { // KICK
             target = goal_line.intersection(ball_seg);
             if !target.is_valid() {
@@ -100,16 +101,11 @@ impl MyStrategy {
         } else if target.x > self.rules.arena.goal_width/2.0 - 1.5{
             target.x = self.rules.arena.goal_width/2.0 - 1.5;
         }
-        self.gtp(&target);
-        // let my = self.me.position();
-        // if self.game.ball.position().dist(Vec2::new(0.0, -self.rules.arena.depth/2.0)) < 20.0 && self.game.ball.velocity().len() < 2.0 {
-        //     self.kick(&((ball_pos - my) * 10.0));
-        // }
 
+        self.gtp(&target);
+        self.action.jump_speed = 0.0;
         if ball_pos.dist(self.me.position()) < 3.0 && self.game.ball.height() > 2.5 {
             self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
-        } else {
-            self.action.jump_speed = 0.0;
         }
 
     }

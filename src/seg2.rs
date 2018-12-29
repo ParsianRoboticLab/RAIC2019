@@ -48,7 +48,31 @@ impl Seg2 {
         Line2::new2(self.origin, self.terminal)
     }
 
+    fn contains(&self, p: &Vec2) -> bool{
+        (p.x - self.origin.x) * (p.x - self.terminal.x) <= EPSILON
+        && (p.y - self.origin.y) * (p.y - self.terminal.y) <= EPSILON
+    }
+
+    fn nearest_point(&self, p: &Vec2) -> Vec2{
+        let v = self.terminal - self.origin;
+        let len_square = v.len() * v.len();
+        if len_square - 0.0 < EPSILON {
+            return self.origin;
+        }
+        let inner_product = v.inner_product( &(*p - self.origin) );
+        if inner_product <= 0.0 {
+            return self.origin;
+        } else if inner_product >= len_square {
+            return self.terminal;
+        }
+        self.origin + v * (inner_product / len_square)
+    }
+
     fn intersection(&self, other : Seg2) -> Vec2 {
-        self.line().intersection(other.line())
+        let sol = self.line().intersection(other.line());
+        if ! sol.is_valid() || ! self.contains(&sol) || ! other.contains(&sol) {
+            return VEC2INVALID;
+        }
+        sol
     }
 }
