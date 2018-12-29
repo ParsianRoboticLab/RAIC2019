@@ -119,7 +119,6 @@ impl MyStrategy {
         let ballhVel = self.game.ball.hVel();
         let timeToTouchTheField = (ballhVel + (ballhVel*ballhVel + 2.0*gravity*(ballHeight - self.game.ball.radius)).sqrt()) / gravity;
 
-        println!("ballVelx: {}, ballVelY : {} , ballVelLen : {} , time : {}",ballVel.x,ballVel.y,ballVel.len(),timeToTouchTheField );
         let lenTravel = timeToTouchTheField * ballVel.len();
         if ballVel.len() == 0.0 {
             ballpos
@@ -128,9 +127,25 @@ impl MyStrategy {
             ballpos + ballVel.normalize() * lenTravel
         }
     }
-    fn kick(&mut self, target: &Vec2)  {
-          let ballpos = self.game.ball.position();
+    fn travelTime(&mut self, target: &Vec2) -> f64 {
         let robotpos = self.me.position();
+        let robotVel = self.me.velocity();
+        //let mut timeR = 0.0;
+        // if robotVel.len() >= self.rules.ROBOT_MAX_GROUND_SPEED{
+            (*target).dist(robotpos) / robotVel.len()
+        // } else {
+
+        // }
+        // 12.5
+    }
+    fn ballPosInTheFuture (&mut self, t : f64) -> Vec2 {
+        let ballPos = self.game.ball.position();
+        ballPos + self.game.ball.velocity() * t
+    }
+    fn kick(&mut self, target: &Vec2)  {
+        let ballpos = self.game.ball.position();
+        let robotpos = self.me.position();
+        let robotvel = self.me.velocity();
         let finalDir = (*target - ballpos).th();
         let mut idealPath = (ballpos - robotpos).th().deg();
         let mut movementDir = ((ballpos - robotpos).th() - finalDir).deg();
@@ -149,73 +164,112 @@ impl MyStrategy {
         if movementDir.abs() < 5.0 {
             shift = 0.0;
         } else if movementDir > 0.0 {
-            shift = 30.0;
+            shift = 50.0;
         } else {
-            shift = -30.0;
+            shift = -50.0;
         }
         let mut jump = 0.0;
         let robotCurrentPath = self.me.velocity().th().deg();
-        if self.game.ball.height() >= 4.0 && ballVel.len() > 0.0{
-            let touchPrediction = self.ballTouchPrediction();
-            let mut locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * (self.me.radius + self.game.ball.radius + (self.game.ball.height() - self.game.ball.radius) * 0.2) + ballVel * 0.05;
-
-            self.gtp(&locationByPredict);
+        ////////
+        let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius - 0.5);
+//kickoff            
+        if ballVel.len() <= 0.000000001 {
+            idealPath = (tochPoint - robotpos).th().deg(); 
+            if robotvel.len() > 25.0 {
+                jump = self.game.ball.height() *4.0;
+            }
+            self.set_robot_vel(idealPath*3.1415/180.0 , 100.0 ,jump);
         } else {
-            if  (movementDir.abs() < 25.0)   {
-                idealPath = (*target - robotpos).th().deg();
-                let sagPath = (ballpos - robotpos).th().deg();
-                if ((robotCurrentPath - sagPath).abs()) < 15.0 && self.me.velocity().len() > 10.0{
-                    jump = self.rules.ROBOT_MAX_JUMP_SPEED;
+        /////
+            if self.game.ball.height() >= 6.0 {
+                let touchPrediction = self.ballTouchPrediction();
+                let mut locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * (0.1 + self.me.radius + self.game.ball.radius + (self.game.ball.height() - self.game.ball.radius) * 0.2) + ballVel * 0.05;
+
+                self.gtp(&locationByPredict);
+            } else {
+
+////// New prediction
+                if ballVel.len() > 0.5 && movementDir.abs() < 70.0 {
+                    for i in 1..100 {
+                        let m = i as f64 * 0.1;
+                        let bPIF = self.ballPosInTheFuture(m) + (self.ballPosInTheFuture(m) - *target).normalize()*(self.game.ball.radius - 0.5);
+                        if (self.travelTime(&bPIF) - m) < 0.01 {
+                            tochPoint = bPIF;
+                            // while true {
+                            //     println!("I'm the god {}",m);
+                            // }
+                            break;
+
+                        }
+                    }
+
+                    println!("ballPos x {} y {} ,, TP x {} y {}",(ballpos + (ballpos - *target).normalize()*(self.game.ball.radius) ).x,(ballpos + (ballpos - *target).normalize()*(self.game.ball.radius)).y,tochPoint.x,tochPoint.y );
+                    println!("timeball:: {}",self.travelTime(&ballpos));
+                    idealPath = (tochPoint - robotpos).th().deg(); 
+                    if ((robotCurrentPath - idealPath).abs()) < 15.0 && (self.me.velocity()-ballVel).len() > 5.0 && (tochPoint.dist(robotpos) < 5.0 && self.me.velocity().len() > 15.0) {
+                        jump = 15.0;
+                    } else {
+                        jump = 0.0;
+                    }
+                }
+
+
+                else if  (movementDir.abs() < 25.0)   {
+                    idealPath = (tochPoint - robotpos).th().deg(); 
+                    if ((robotCurrentPath - idealPath).abs()) < 15.0 && self.me.velocity().len() > 10.0{
+                        jump = self.rules.ROBOT_MAX_JUMP_SPEED;
+                    } else {
+                        jump = 0.0;
+                    }
                 } else {
                     jump = 0.0;
+                    idealPath = (idealPath + shift);
                 }
-            } else {
-                jump = 0.0;
-                idealPath = (idealPath + shift);
+
+
+                self.set_robot_vel(idealPath*DEG2RAD ,100.0,jump);
             }
-
-
-            self.set_robot_vel(idealPath*DEG2RAD ,100.0,jump);
         }
 
-    }
-    fn pm(&mut self, target: &Vec2) {
-        self.kick(target);
+    
+}
+fn pm(&mut self, target: &Vec2) {
+    self.kick(target);
 
-    }
+}
 
-    fn gtp(&mut self, targetMain: & Vec2) {
+fn gtp(&mut self, targetMain: & Vec2) {
 
-        let mut target = *targetMain;
+    let mut target = *targetMain;
     if (target).y > self.rules.arena.depth / 2.0 {
-            (target).y = self.rules.arena.depth / 2.0;
-        }
-        if target.y < self.rules.arena.depth / -2.0 {
-            target.y = self.rules.arena.depth / -2.0;
-        }
-        if target.x > self.rules.arena.width / 2.0 {
-            target.x = self.rules.arena.width / 2.0;
-        }
-        if target.x < self.rules.arena.width / -2.0 {
-            target.x = self.rules.arena.width / -2.0;
-        }
-
-        let dist = self.me.position().dist(target);
-        let diff = target - self.me.position();
-        let angle = (diff.y).atan2(diff.x);
-        let a  = self.posPID.run(dist);
-        println!("{}**{}**{}", dist, angle, a);
-        self.set_robot_vel(angle, a , 0.0);
-
+        (target).y = self.rules.arena.depth / 2.0;
+    }
+    if target.y < self.rules.arena.depth / -2.0 {
+        target.y = self.rules.arena.depth / -2.0;
+    }
+    if target.x > self.rules.arena.width / 2.0 {
+        target.x = self.rules.arena.width / 2.0;
+    }
+    if target.x < self.rules.arena.width / -2.0 {
+        target.x = self.rules.arena.width / -2.0;
     }
 
-    fn set_robot_vel(&mut self, angle : f64, vel: f64, jump : f64) {
-        self.action = Action {
-            target_velocity_x: vel*angle.cos(),
-            target_velocity_y: 0.0,
-            target_velocity_z: vel*angle.sin(),
-            jump_speed: jump,
-            use_nitro: false,
-        }
+    let dist = self.me.position().dist(target);
+    let diff = target - self.me.position();
+    let angle = (diff.y).atan2(diff.x);
+    let a  = self.posPID.run(dist);
+    println!("{}**{}**{}", dist, angle, a);
+    self.set_robot_vel(angle, a , 0.0);
+
+}
+
+fn set_robot_vel(&mut self, angle : f64, vel: f64, jump : f64) {
+    self.action = Action {
+        target_velocity_x: vel*angle.cos(),
+        target_velocity_y: 0.0,
+        target_velocity_z: vel*angle.sin(),
+        jump_speed: jump,
+        use_nitro: false,
     }
+}
 }
