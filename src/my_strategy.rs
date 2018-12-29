@@ -13,6 +13,7 @@ include!("angdeg.rs");
 include!("seg2.rs");
 include!("line2.rs");
 include!("simulation.rs");
+include!("vec3.rs");
 
 pub struct MyStrategy{
     coach : Coach,
@@ -172,9 +173,9 @@ impl MyStrategy {
         let robotCurrentPath = self.me.velocity().th().deg();
         ////////
         let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius - 0.5);
-//kickoff            
+//kickoff
         if ballVel.len() <= 0.000000001 {
-            idealPath = (tochPoint - robotpos).th().deg(); 
+            idealPath = (tochPoint - robotpos).th().deg();
             if robotvel.len() > 25.0 {
                 jump = self.game.ball.height() *4.0;
             }
@@ -205,7 +206,7 @@ impl MyStrategy {
 
                     println!("ballPos x {} y {} ,, TP x {} y {}",(ballpos + (ballpos - *target).normalize()*(self.game.ball.radius) ).x,(ballpos + (ballpos - *target).normalize()*(self.game.ball.radius)).y,tochPoint.x,tochPoint.y );
                     println!("timeball:: {}",self.travelTime(&ballpos));
-                    idealPath = (tochPoint - robotpos).th().deg(); 
+                    idealPath = (tochPoint - robotpos).th().deg();
                     if ((robotCurrentPath - idealPath).abs()) < 15.0 && (self.me.velocity()-ballVel).len() > 5.0 && (tochPoint.dist(robotpos) < 5.0 && self.me.velocity().len() > 15.0) {
                         jump = 15.0;
                     } else {
@@ -215,7 +216,7 @@ impl MyStrategy {
 
 
                 else if  (movementDir.abs() < 25.0)   {
-                    idealPath = (tochPoint - robotpos).th().deg(); 
+                    idealPath = (tochPoint - robotpos).th().deg();
                     if ((robotCurrentPath - idealPath).abs()) < 15.0 && self.me.velocity().len() > 10.0{
                         jump = self.rules.ROBOT_MAX_JUMP_SPEED;
                     } else {
@@ -231,7 +232,7 @@ impl MyStrategy {
             }
         }
 
-    
+
 }
 fn pm(&mut self, target: &Vec2) {
     self.kick(target);
