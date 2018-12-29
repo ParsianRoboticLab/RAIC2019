@@ -13,6 +13,8 @@ include!("angdeg.rs");
 include!("seg2.rs");
 include!("line2.rs");
 include!("simulation.rs");
+include!("dan.rs");
+include!("circle2.rs");
 include!("vec3.rs");
 include!("entity3.rs");
 
@@ -262,7 +264,7 @@ fn gtp(&mut self, targetMain: & Vec2) {
     let a  = self.posPID.run(dist);
     println!("{}**{}**{}", dist, angle, a);
     self.set_robot_vel(angle, a , 0.0);
-    
+
 
 }
 
