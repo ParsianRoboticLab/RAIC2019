@@ -99,7 +99,7 @@ impl Simulation {
 
     fn update_ball(_ball: &mut Ball, _rules: &Rules, delta_time: f64) {
             Self::move_e(_ball, delta_time, _rules);
-            Self::collide_with_arena(_ball, 0.0);
+            Self::collide_with_arena(_ball, 0.0, _rules);
     }
 
     fn tick_ball(_ball: &mut Ball, _rules: &Rules, _time: f64) {
