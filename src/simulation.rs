@@ -106,8 +106,8 @@ impl Simulation {
             Self::collide_with_arena(_ball, 0.0);
     }
 
-    fn tick_ball(_ball: &mut Ball, _rules: &Rules) {
-        let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
+    fn tick_ball(_ball: &mut Ball, _rules: &Rules, _time: f64) {
+        let delta_time = _time / _rules.TICKS_PER_SECOND as f64;
         for _ in 0 .. _rules.MICROTICKS_PER_TICK - 1 {
             Self::update_ball(_ball, _rules, delta_time / _rules.MICROTICKS_PER_TICK as f64);
         }
