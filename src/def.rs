@@ -50,7 +50,7 @@ impl Default for Rules {
             NITRO_PACK_RADIUS: 0.,
             NITRO_PACK_AMOUNT: 0.,
             NITRO_PACK_RESPAWN_TICKS: 0,
-            GRAVITY: 0., 
+            GRAVITY: 0.,
         }
     }
 }
@@ -81,7 +81,7 @@ impl Default for Robot {
 impl Default for Ball {
     fn default() -> Self {
     Self{
-        x: 0.0,          
+        x: 0.0,
         y: 0.0,
         z: 0.0,
         velocity_x: 0.0,
@@ -100,6 +100,20 @@ impl Default for Game {
             robots: Vec::new(),
             nitro_packs: Vec::new(),
             ball: Ball{..Default::default()}
+        }
+    }
+}
+
+trait VEC {
+    fn target_vel(&self) -> Vec3;
+}
+
+impl VEC for Action {
+    fn target_vel(&self) -> Vec3 {
+        Vec3{
+            x: self.target_velocity_x,
+            y: self.target_velocity_z,
+            h: self.target_velocity_y,
         }
     }
 }
