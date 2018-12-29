@@ -2,10 +2,12 @@ trait Simulation {
     fn collide_entities(_a: &mut Entity3, _b: &mut Entity3);
     fn collide_with_arena(_e: &mut Entity3) -> Vec3;
     fn move_e(_e: &mut Entity3, delta_time: f64);
+    fn update(_me : &Robot, _action: &Action, _rule: &Rules, delta_time: f64);
 }
 
 fn clamp(_v : &Vec3, max: f64) -> Vec3 {
     if _v.len() > max {
+
         return _v.normalize() * max
     }
     *_v
@@ -70,5 +72,14 @@ impl Simulation for MyStrategy {
         _e.set_height(h - (gravity * delta_time));
     }
 
+    fn update(_me : &Robot, _action: &Action, _rule: &Rules, delta_time: f64) {
+            if _me.touch {
+                let mut target_vel = clamp(&_action.target_vel(), _rule.ROBOT_MAX_GROUND_SPEED);
+                target_vel -= _me.touch_noraml() * _me.touch_noraml().inner_product(&target_vel);
+                let target_vel_change = target_vel - _me.velocity3();
+                if target_vel_change.len() > 0.0 {
 
+                }
+            }
+    }
 }
