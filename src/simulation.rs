@@ -94,10 +94,22 @@ impl Simulation {
             Self::collide_with_arena(_ball, 0.0);
     }
 
-    fn tick(_me : &mut Robot, _ball: &mut Ball, _action: &Action, _rule: &Rules, _time: f64) {
-        let delta_time = _time / _rule.TICKS_PER_SECOND as f64;
-        for _ in 0 .. _rule.MICROTICKS_PER_TICK - 1 {
-            Self::update(_me, _ball, _action, _rule, delta_time / _rule.MICROTICKS_PER_TICK as f64);
+    fn tick(_me : &mut Robot, _ball: &mut Ball, _action: &Action, _rules: &Rules) {
+        let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
+        for _ in 0 .. _rules.MICROTICKS_PER_TICK - 1 {
+            Self::update(_me, _ball, _action, _rules, delta_time / _rules.MICROTICKS_PER_TICK as f64);
+        }
+    }
+
+    fn update_ball(_ball: &mut Ball, _rules: &Rules, delta_time: f64) {
+            Self::move_e(_ball, delta_time, _rules);
+            Self::collide_with_arena(_ball, 0.0);
+    }
+
+    fn tick_ball(_ball: &mut Ball, _rules: &Rules) {
+        let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
+        for _ in 0 .. _rules.MICROTICKS_PER_TICK - 1 {
+            Self::update_ball(_ball, _rules, delta_time / _rules.MICROTICKS_PER_TICK as f64);
         }
     }
 }
