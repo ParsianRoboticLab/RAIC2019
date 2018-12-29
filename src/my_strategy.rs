@@ -6,6 +6,7 @@ const EPSILON : f64 = 1.0e-6;
 
 include!("pid.rs");
 include!("vec2.rs");
+include!("Vec3.rs");
 include!("def.rs");
 include!("entity.rs");
 include!("coach.rs");
@@ -35,6 +36,25 @@ impl Default for MyStrategy {
         }
     }
 }
+
+    fn dan_to_plane(point: Vec3, point_on_plane: Vec3, plane_normal: Vec3) -> (f64,Vec3) {
+        return (((point - point_on_plane).inner_product(&plane_normal)) , plane_normal);
+    }
+    fn dan_to_sphere_inner(point: Vec3, sphere_center: Vec3, sphere_radius: f64) -> (f64,Vec3) {
+    return (sphere_radius - (point - sphere_center).len(),(sphere_center - point).normalize());
+    }
+    fn dan_to_sphere_outer(point: Vec3, sphere_center: Vec3, sphere_radius: f64) -> (f64,Vec3) {
+    return ((point - sphere_center).len() - sphere_radius,(point - sphere_center).normalize()) ;
+    
+    }
+    fn min(a: (f64,Vec3), b :(f64,Vec3)) -> (f64,Vec3) {
+        if a.0 > b.0 {
+            return a;
+        } else {
+            return b;
+        }
+    }
+ 
 
 impl Strategy for MyStrategy {
     fn act(&mut self, me: &Robot, _rules: &Rules, _game: &Game, _action: &mut Action) {
@@ -76,15 +96,16 @@ fn get_bisect(seg: &Seg2, vec: &Vec2) -> Seg2{
 }
 
 
+
 impl MyStrategy {
 
 
     fn gk(&mut self) {
-        let y_goal = -self.rules.arena.depth/2.0 + 3.0;
+        let y_goal = self.rules.arena.depth/-2.0 + 3.0;
         let ball_pos = self.game.ball.position();
         let goal_line = Seg2{
             origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:y_goal},
-            terminal: Vec2{x:-self.rules.arena.goal_width/2.0, y:y_goal}
+            terminal: Vec2{x:self.rules.arena.goal_width/-2.0, y:y_goal}
         };
         let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
         let biset = get_bisect(&goal_line, &ball_pos);
@@ -97,8 +118,8 @@ impl MyStrategy {
         } else if self.game.ball.position().y  < 0.0 {
             target = Vec2{x:self.game.ball.position().x, y:y_goal};
         }
-        if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
-            target.x = -self.rules.arena.goal_width/2.0 + 1.5;
+        if target.x < self.rules.arena.goal_width/-2.0 + 1.5 {
+            target.x =self.rules.arena.goal_width/-2.0 + 1.5;
         } else if target.x > self.rules.arena.goal_width/2.0 - 1.5{
             target.x = self.rules.arena.goal_width/2.0 - 1.5;
         }
@@ -142,6 +163,262 @@ impl MyStrategy {
         let ballPos = self.game.ball.position();
         ballPos + self.game.ball.velocity() * t
     }
+//// sth smb do
+    
+    fn dan_to_arena_quarter(&mut self, point: Vec3) -> (f64,Vec3) {
+    // Ground
+    let mut dan = dan_to_plane(point, Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 1.0, 0.0));
+    // Ceiling
+    if dan.0 > dan_to_plane(point, Vec3::new(0.0, self.rules.arena.height, 0.0), Vec3::new(0.0, -1.0, 0.0)).0 {
+        dan = dan_to_plane(point, Vec3::new(0.0, self.rules.arena.height, 0.0), Vec3::new(0.0, -1.0, 0.0));
+    }
+    // Side x
+    if dan.0 > dan_to_plane(point, Vec3::new(self.rules.arena.width / 2.0, 0.0, 0.0), Vec3::new(-1.0, 0.0, 0.0)).0 {
+        dan = dan_to_plane(point, Vec3::new(self.rules.arena.width / 2.0, 0.0, 0.0), Vec3::new(-1.0, 0.0, 0.0));
+    }
+    // Side z (goal)
+    if dan.0 >= dan_to_plane(point,Vec3::new(0.0, 0.0, (self.rules.arena.depth / 2.0) + self.rules.arena.goal_depth),Vec3::new(0.0, 0.0, -1.0)).0 {
+    dan = dan_to_plane(point,Vec3::new(0.0, 0.0, (self.rules.arena.depth / 2.0) + self.rules.arena.goal_depth),Vec3::new(0.0, 0.0, -1.0));
+    }
+    // Side z
+    let mut v = Vec2::new(point.x, point.y) - Vec2::new((self.rules.arena.goal_width / 2.0) - self.rules.arena.goal_top_radius,self.rules.arena.goal_height - self.rules.arena.goal_top_radius);
+    if point.x >= (self.rules.arena.goal_width / 2.0) + self.rules.arena.goal_side_radius || point.y >= self.rules.arena.goal_height + self.rules.arena.goal_side_radius|| (v.x > 0.0 && v.y > 0.0 && v.len() >= self.rules.arena.goal_top_radius + self.rules.arena.goal_side_radius) {        
+        dan = min(dan , dan_to_plane(point, Vec3::new(0.0, 0.0, self.rules.arena.depth / 2.0), Vec3::new(0.0, 0.0, -1.0)));
+    }
+    
+    //Side x & ceiling (goal)
+    if point.h >= (self.rules.arena.depth / 2.0) + self.rules.arena.goal_side_radius {
+    // x
+        dan = min(dan, dan_to_plane(point,Vec3::new(self.rules.arena.goal_width / 2.0, 0.0, 0.0),Vec3::new(-1.0, 0.0, 0.0)));
+        // y
+        dan = min(dan, dan_to_plane(point, Vec3::new(0.0, self.rules.arena.goal_height, 0.0), Vec3::new(0.0, -1.0, 0.0)));
+    }
+    // Goal back corners
+
+    // if point.z > (self.rules.arena.depth / 2) + arena.goal_depth - arena.bottom_radius:
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (
+    // clamp(
+    // point.x,
+    // arena.bottom_radius - (self.rules.arena.goal_width / 2),
+    // (self.rules.arena.goal_width / 2) - arena.bottom_radius,
+    // ),
+    // clamp(
+    // point.y,
+    // arena.bottom_radius,
+    // self.rules.arena.goal_height - self.rules.arena.goal_top_radius,
+    // ),
+    // (self.rules.arena.depth / 2) + arena.goal_depth - arena.bottom_radius),
+    // arena.bottom_radius))
+    // // Corner
+    // if point.x > (arena.width / 2) - arena.corner_radius
+    // and point.z > (self.rules.arena.depth / 2) - arena.corner_radius:
+    // dan = min(dan, dan_to_sphere_inner(point,((arena.width / 2) - arena.corner_radius,point.y,(self.rules.arena.depth / 2) - arena.corner_radius),arena.corner_radius))
+    // // Goal outer corner
+    // if point.z < (self.rules.arena.depth / 2) + self.rules.arena.goal_side_radius:
+    // // Side x
+    // if point.x < (self.rules.arena.goal_width / 2) + self.rules.arena.goal_side_radius:
+    // dan = min(dan, dan_to_sphere_outer(
+    // point,
+    // (
+    // (self.rules.arena.goal_width / 2) + self.rules.arena.goal_side_radius,
+    // point.y,
+    // (self.rules.arena.depth / 2) + self.rules.arena.goal_side_radius
+    // ),
+    // self.rules.arena.goal_side_radius))
+    // // Ceiling
+    // if point.y < self.rules.arena.goal_height + self.rules.arena.goal_side_radius:
+    // dan = min(dan, dan_to_sphere_outer(
+    // point,
+    // (
+    // point.x,
+    // self.rules.arena.goal_height + self.rules.arena.goal_side_radius,
+    // (self.rules.arena.depth / 2) + self.rules.arena.goal_side_radius
+    // ),
+    // self.rules.arena.goal_side_radius))
+    // // Top corner
+    // let o = (
+    // (self.rules.arena.goal_width / 2) - self.rules.arena.goal_top_radius,
+    // self.rules.arena.goal_height - self.rules.arena.goal_top_radius
+    // )
+    // let v = (point.x, point.y) - o
+    // if v.x > 0 and v.y > 0:
+    // let o = o + normalize(v) * (self.rules.arena.goal_top_radius + self.rules.arena.goal_side_radius)
+    // dan = min(dan, dan_to_sphere_outer(
+    // point,
+    // (o.x, o.y, (self.rules.arena.depth / 2) + self.rules.arena.goal_side_radius),
+    // self.rules.arena.goal_side_radius))
+    // // Goal inside top corners
+    // if point.z > (self.rules.arena.depth / 2) + self.rules.arena.goal_side_radius
+    // and point.y > self.rules.arena.goal_height - self.rules.arena.goal_top_radius:
+    // // Side x
+    // if point.x > (self.rules.arena.goal_width / 2) - self.rules.arena.goal_top_radius:
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (
+    // (self.rules.arena.goal_width / 2) - self.rules.arena.goal_top_radius,
+    // self.rules.arena.goal_height - self.rules.arena.goal_top_radius,
+    // point.z
+    // ),
+    // self.rules.arena.goal_top_radius))
+    // // Side z
+    // if point.z > (self.rules.arena.depth / 2) + arena.goal_depth - self.rules.arena.goal_top_radius:
+    // dan = min(dan, dan_to_sphere_inner(point,(point.x,self.rules.arena.goal_height - self.rules.arena.goal_top_radius,
+    // (self.rules.arena.depth / 2) + arena.goal_depth - self.rules.arena.goal_top_radius
+    // ),
+    // self.rules.arena.goal_top_radius))
+    // // Bottom corners
+    // if point.y < arena.bottom_radius:
+    // // Side x
+    // if point.x > (arena.width / 2) - arena.bottom_radius:
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (
+    // (arena.width / 2) - arena.bottom_radius,
+    // arena.bottom_radius,
+    // point.z
+    // ),
+    // arena.bottom_radius))
+    // // Side z
+    // if point.z > (self.rules.arena.depth / 2) - arena.bottom_radius
+    // and point.x >= (self.rules.arena.goal_width / 2) + self.rules.arena.goal_side_radius:
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (
+    // point.x,
+    // arena.bottom_radius,
+    // (self.rules.arena.depth / 2) - arena.bottom_radius
+    // ),
+    // arena.bottom_radius))
+    // // Side z (goal)
+    // if point.z > (self.rules.arena.depth / 2) + arena.goal_depth - arena.bottom_radius:
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (
+    // point.x,
+    // arena.bottom_radius,
+    // (self.rules.arena.depth / 2) + arena.goal_depth - arena.bottom_radius
+    // ),
+    // arena.bottom_radius))
+    // // Goal outer corner
+    // let o = (
+    // (self.rules.arena.goal_width / 2) + self.rules.arena.goal_side_radius,
+    // (self.rules.arena.depth / 2) + self.rules.arena.goal_side_radius
+    // )
+    // let v = (point.x, point.z) - o
+    // if v.x < 0 and v.y < 0
+    // and length(v) < self.rules.arena.goal_side_radius + arena.bottom_radius:
+    // let o = o + normalize(v) * (self.rules.arena.goal_side_radius + arena.bottom_radius)
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (o.x, arena.bottom_radius, o.y),
+    // arena.bottom_radius))
+    // // Side x (goal)
+    // if point.z >= (self.rules.arena.depth / 2) + self.rules.arena.goal_side_radius
+    // and point.x > (self.rules.arena.goal_width / 2) - arena.bottom_radius:
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,(
+    // (self.rules.arena.goal_width / 2) - arena.bottom_radius,
+    // arena.bottom_radius,
+    // point.z
+    // ),
+    // arena.bottom_radius))
+    // // Corner
+    // if point.x > (arena.width / 2) - arena.corner_radius
+    // and point.z > (self.rules.arena.depth / 2) - arena.corner_radius:
+    // let corner_o = (
+    // (arena.width / 2) - arena.corner_radius,
+    // (self.rules.arena.depth / 2) - arena.corner_radius
+    // )
+    // let n = (point.x, point.z) - corner_o
+    // let dist = n.len()
+    // if dist > arena.corner_radius - arena.bottom_radius:
+    // let n = n / dist
+    // let o2 = corner_o + n * (arena.corner_radius - arena.bottom_radius)
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (o2.x, arena.bottom_radius, o2.y),
+    // arena.bottom_radius))
+    // // Ceiling corners
+    // if point.y > arena.height - arena.top_radius:
+    // // Side x
+    // if point.x > (arena.width / 2) - arena.top_radius:
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (
+    // (arena.width / 2) - arena.top_radius,
+    // arena.height - arena.top_radius,
+    // point.z,
+    // ),
+    // arena.top_radius))
+    // // Side z
+    // if point.z > (self.rules.arena.depth / 2) - arena.top_radius:
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (
+    // point.x,
+    // arena.height - arena.top_radius,
+    // (self.rules.arena.depth / 2) - arena.top_radius,
+    // )
+    // arena.top_radius))
+    // // Corner
+    // if point.x > (arena.width / 2) - arena.corner_radius
+    // and point.z > (self.rules.arena.depth / 2) - arena.corner_radius:
+    // let corner_o = (
+    // (arena.width / 2) - arena.corner_radius,
+    // (self.rules.arena.depth / 2) - arena.corner_radius
+    // )
+    // let dv = (point.x, point.z) - corner_o
+    // if length(dv) > arena.corner_radius - arena.top_radius:
+    // let n = normalize(dv)
+    // let o2 = corner_o + n * (arena.corner_radius - arena.top_radius)
+    // dan = min(dan, dan_to_sphere_inner(
+    // point,
+    // (o2.x, arena.height - arena.top_radius, o2.y),
+    // arena.top_radius))
+    return dan;
+    }
+
+
+
+    // fn dan_to_arena(inPoint: Vec2 , height : f64) {
+    //     let mut point = inPoint;
+    //     let negate_x = point.x < 0 ;
+    //     let negate_z = point.y < 0 ;
+    //     if negate_x {
+    //         point.x = -1*point.x;
+    //     }
+    //     if negate_z {
+    //         point.z = -1*point.z;
+    //     }
+
+    //     let result = dan_to_arena_quarter(point)
+    //     if negate_x:
+    //     result.normal.x = -result.normal.x
+    //     if negate_z:
+    //     result.normal.z = -result.normal.z
+    //     return result
+    // }
+    // fn collide_with_arena(&mut self) {
+    //     let distance, normal = dan_to_arena(e.position)
+    //     let penetration = e.radius - distance
+    //     if penetration > 0:
+    //     e.position += penetration * normal
+    //     let velocity = dot(e.velocity, normal) - e.radius_change_speed
+    //     if velocity < 0:
+    //     e.velocity -= (1 + e.arena_e) * velocity * normal
+    //     return normal
+    //     return None
+    // }
+    // fn ballHeightInTheFuture (&mut self,t:f64) -> f64 {
+    //    let ballHeight = self.game.ball.height();
+    //    let ballhVel = self.game.ball.hVel();
+
+    //    let height = ballhVel * t - 0.5* self.rules.GRAVITY *t *t + ballHeight;
+
+    //    height
+    // }
     fn kick(&mut self, target: &Vec2)  {
         let ballpos = self.game.ball.position();
         let robotpos = self.me.position();
