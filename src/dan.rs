@@ -4,15 +4,35 @@ struct DAN {
 
 impl DAN {
     fn dan_to_plane(point: &Vec3, point_on_plane: &Vec3, plane_normal: &Vec3) -> (f64,Vec3) {
-        ((*point - *point_on_plane).inner_product(&plane_normal) , *plane_normal)
+        let pn = Vec3 {
+            x: plane_normal.x,
+            y: plane_normal.h,
+            h: plane_normal.y,
+        };
+        let pop = Vec3 {
+            x: point_on_plane.x,
+            y: point_on_plane.h,
+            h: point_on_plane.y,
+        };
+        ((*point - pop).inner_product(&pn) ,pn)
     }
 
     fn dan_to_sphere_inner(point: &Vec3, sphere_center: &Vec3, sphere_radius: &f64) -> (f64,Vec3) {
-        (sphere_radius - (*point - *sphere_center).len(),(*sphere_center - *point).normalize())
+        let sc = Vec3 {
+            x: sphere_center.x,
+            y: sphere_center.h,
+            h: sphere_center.y,
+        };
+        (sphere_radius - (*point - sc).len(),(sc - *point).normalize())
     }
 
     fn dan_to_sphere_outer(point: &Vec3, sphere_center: &Vec3, sphere_radius: &f64) -> (f64,Vec3) {
-        ((*point - *sphere_center).len() - sphere_radius,(*point - *sphere_center).normalize())
+        let sc = Vec3 {
+            x: sphere_center.x,
+            y: sphere_center.h,
+            h: sphere_center.y,
+        };
+        ((*point - sc).len() - sphere_radius,(*point - sc).normalize())
 
     }
 
