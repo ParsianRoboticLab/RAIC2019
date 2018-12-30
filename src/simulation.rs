@@ -36,6 +36,56 @@ impl Simulation {
             }
         }
     }
+    fn simpleRobotBallColideStep(_robot: &Entity3, _ball: &Entity3, _radius_change_speed: f64,_rules: &Rules) -> Vec3 {
+        let delta_position = _ball.position3() - _robot.position3();
+        let distance = delta_position.len();
+        let penetration = _robot.radius() + _ball.radius() - distance;
+        let a_pos = _robot.position3();
+        let b_pos = _ball.position3();
+        let a_vel = _robot.velocity3();
+        let b_vel = _ball.velocity3();
+        if penetration > 0.0 {
+            let k_a = (1.0 / _robot.mass()) / ((1.0 / _ball.mass()) + (1.0  / _ball.mass()));
+            let k_b = (1.0 / _ball.mass()) / ((1.0 / _robot.mass()) + (1.0  / _ball.mass()));
+            let normal = delta_position.normalize();
+            let delta_vel = (_ball.velocity3() - _robot.velocity3()).inner_product(&normal) - _radius_change_speed;
+            //+ _b.radius_change_speed() - _a.radius_change_speed();
+            if delta_vel < 0.0 {
+                let impulse = normal * (1.0 + (_rules.MIN_HIT_E + _rules.MAX_HIT_E)/2.0) * delta_vel;
+                let finalVel = b_vel - (impulse * k_b);
+                finalVel
+
+            } else {
+                b_vel
+            }
+        } else {
+                b_vel
+        }
+    }
+
+    fn bestPlaceOnBallForKick(finalVel : Vec3 ,_robot: &Entity3, _ball: &Entity3, _radius_change_speed: f64,_rules: &Rules) -> Vec3 {
+            let _result = Vec3::new(5000.0,5000.0,5000.0);
+            let _finalVelNormm = finalVel.normalize();
+            let mut _x = 0.0;
+            let mut _y = 0.0;
+            let mut _z = 0.0;
+            let mut _theta = 0.0;
+            let mut _phi = 0.0;
+            let mut _impulseVec = Vec3::new(0.0,0.0,0.0);
+            let _radius = _ball.radius() + _robot.radius();
+            for i in (0..360).step_by(5) {
+                for j in (0..360).step_by(5) {
+                    _theta = (i as f64) * 180.0/3.1415;
+                    _phi = (j as f64) * 180.0/3.1415;
+                    _x = _radius * (_phi.sin())*(_theta.cos());
+                    _y = _radius * (_phi.cos())*(_theta.sin());
+                    _z = _radius * (_phi.cos());
+
+
+                }
+            }
+            return _result;
+    }
 
     fn collide_with_arena(_e: &mut Entity3, _radius_change_speed: f64, _rules: &Rules) -> Vec3 {
         let (distance, normal) = DAN::dan_to_arena(&_e.position3(), _rules);
@@ -118,8 +168,8 @@ impl Simulation {
 
     fn tick_ball(_ball: &mut Ball, _rules: &Rules, _time: f64) {
         let delta_time = _time / _rules.TICKS_PER_SECOND as f64;
-        for _ in 0 .. 50 - 1 {
-            Self::update_ball(_ball, _rules, delta_time / 50 as f64);
+        for _ in 0 .. 30 - 1 {
+            Self::update_ball(_ball, _rules, delta_time / 30 as f64);
         }
     }
 }

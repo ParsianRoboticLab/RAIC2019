@@ -224,6 +224,44 @@ impl MyStrategy {
         ballPos + self.game.ball.velocity() * t
     }
 
+    fn robotJumpCalc(&mut self) {
+        let maxJumpHeight = self.rules.ROBOT_MAX_JUMP_SPEED * self.rules.ROBOT_MAX_JUMP_SPEED / (2.0 * self.rules.GRAVITY);
+
+    }
+
+    fn bestPlaceOnBallForKick(&mut self, finalVel : Vec3 ,_robot: &Entity3, _ball: &Entity3, _radius_change_speed: f64,_rules: &Rules) -> Vec3 {
+            let mut _result = Vec3::new(5000.0,5000.0,5000.0);
+            let _finalVelNormm = finalVel.normalize();
+            let mut _x = 0.0;
+            let mut _y = 0.0;
+            let mut _z = 0.0;
+            let mut _theta = 0.0;
+            let mut _phi = 0.0;
+            let mut _impulseVec = Vec3::new(0.0,0.0,0.0);
+            let _radius = _ball.radius() + _robot.radius();
+            let mut _outPut = Vec3::new(0.0,0.0,0.0);
+            let mut bestAnswer = Vec3::new(0.0,0.0,0.0);
+            let mut answerDist = 1000000.0;
+            for i in (0..360).step_by(5) {
+                for j in (0..360).step_by(5) {
+                    _theta = (i as f64) * 180.0/3.1415;
+                    _phi = (j as f64) * 180.0/3.1415;
+                    _x = _radius * (_phi.sin())*(_theta.cos());
+                    _y = _radius * (_phi.cos())*(_theta.sin());
+                    _z = _radius * (_phi.cos());
+                    let mut virtualBot = &mut self.me.clone();
+                    virtualBot.set_position(&(Vec3::new(_x,_y,_z)));
+                    virtualBot.set_velocity(&((Vec3::new(_x,_y,_z) - _robot.position3()).normalize()*self.rules.ROBOT_MAX_GROUND_SPEED));
+                    _outPut = Simulation::simpleRobotBallColideStep(virtualBot,_ball,_radius_change_speed,_rules);
+                    let _dist = (_outPut.normalize() - _finalVelNormm).len();
+                    if _dist < answerDist {
+                        answerDist = _dist;
+                        bestAnswer = Vec3::new(_x,_y,_z);
+                    }
+                }
+            }
+            return _result;
+    }
     fn kick(&mut self, target: &Vec2)  {
         let ballpos = self.game.ball.position();
         let robotpos = self.me.position();
@@ -233,7 +271,7 @@ impl MyStrategy {
         let mut movementDir = ((ballpos - robotpos).th() - finalDir).deg();
         let ballVel = self.game.ball.velocity();
         let mut waitForBall = 0.0;
-
+        self.robotJumpCalc();
         if movementDir >= 180.0 {
             movementDir -= 360.0;
         }
@@ -255,6 +293,8 @@ impl MyStrategy {
         let mut jump = 0.0;
         let robotCurrentPath = self.me.velocity().th().deg();
         let mut new_ball = &mut self.game.ball.clone();
+        let mut best_ball = &mut self.game.ball.clone();
+
         ////////
         let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
         //kickoff
@@ -300,7 +340,9 @@ impl MyStrategy {
                         Simulation::tick_ball(new_ball, &self.rules, 1.0);
                         ballPath[j] = new_ball.position();
                         ballH[j] = new_ball.height();
-                        let bPIF = ballPath[j]+ (ballPath[j] - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
+                        let rulesCopy = self.rules.clone();
+                        let meCopy = self.me.clone();
+                        let bPIF = self.bestPlaceOnBallForKick((Vec3::new(target.x,target.y,2.0) - new_ball.position3()),&meCopy,new_ball,15.0,&rulesCopy).toVec2();// = ballPath[j]+ (ballPath[j] - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
                         let robotTravelTime = self.travelTime(&bPIF);
                         if robotTravelTime <= (j as f64)/60.0 && (ballH[j] < 4.0) {
                             feasiblePoints.push(ballPath[j]);
@@ -314,6 +356,8 @@ impl MyStrategy {
                         }
 
                     }
+
+
                     println!("num of feasibles {}",feasiblePoints.len() );
 
                     println!("ball prediction : {}", ballH[60]);
