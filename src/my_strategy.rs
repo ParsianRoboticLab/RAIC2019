@@ -59,8 +59,8 @@ impl Strategy for MyStrategy {
         }
         // Fill Action (Control)
         *_action = self.action;
-        // println!("Role: {:#?}", my_role);
-        // println!("Action: {:#?}", _action);
+        // //println!("Role: {:#?}", my_role);
+        // //println!("Action: {:#?}", _action);
 
     }
 
@@ -90,7 +90,7 @@ impl MyStrategy {
             Self::pure_gk(&me, &ball, r, &mut action, true);
             let (col, vel) = Simulation::tick(&mut me, &mut ball, &action, &self.rules);
             if col && vel.y > 1.0 {
-                println!("COL: {}, {:?}", col, vel);
+                //println!("COL: {}, {:?}", col, vel);
                 return true
             }
         }
@@ -205,7 +205,7 @@ impl MyStrategy {
             movementDir += 360.0;
         }
 
-        println!("movementDir {}", movementDir );
+        //println!("movementDir {}", movementDir );
 
         let mut shift = 0.0;
 
@@ -222,7 +222,7 @@ impl MyStrategy {
         ////////
         let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
         //kickoff
-        println!("ball Vel::: {}",ballVel.len() );
+        //println!("ball Vel::: {}",ballVel.len() );
         if ballVel.len() <= 0.000000001 {
             idealPath = (tochPoint - robotpos).th().deg();
             if robotvel.len() > 25.0  {
@@ -241,7 +241,7 @@ impl MyStrategy {
             Self::set_robot_vel(idealPath*3.1415/180.0 , 100.0 ,jump, &mut self.action);
         } else {
             /////
-            if self.game.ball.height() >= 10.0  {
+            if self.game.ball.height() >= 10.0  && false {
                 let touchPrediction = self.ballTouchPrediction();
                 let mut locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * (1.1 + self.me.radius + self.game.ball.radius + (self.game.ball.height() - self.game.ball.radius) * 0.2) + ballVel * 0.05;
                     if ballpos.y >= 15.0 {
@@ -251,7 +251,7 @@ impl MyStrategy {
             } else {
 
                 ////// New prediction
-                if movementDir.abs() < 70.0 {
+                if movementDir.abs() < 1170.0 {
                     let mut ballPath = [Vec2::new(0.0,0.0) ; 600];
                     let mut ballH = [0.0 ; 600];
 
@@ -260,17 +260,17 @@ impl MyStrategy {
                     let mut feasiblePointsScore = vec![0.0 ; 2];
                     let mut feasiblePointsHeight = vec![0.0 ; 2];
                     let mut feasiblePointsTickDiff = vec![0.0 ; 2];
-                    for j in 0..200 {
+                    for j in 0..400 {
                         Simulation::tick_ball(new_ball, &self.rules, 1.0);
                         ballPath[j] = new_ball.position();
                         ballH[j] = new_ball.height();
                         let bPIF = ballPath[j]+ (ballPath[j] - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
                         let robotTravelTime = self.travelTime(&bPIF);
-                        if robotTravelTime <= (j as f64)/60.0 && (ballH[j] < 4.0) {
+                        if robotTravelTime <= (j as f64)/60.0 && (ballH[j] < 5.0) {
                             feasiblePoints.push(ballPath[j]);
-                            let mut _point = 800.0 / (j as f64);
+                            let mut _point = 1000.0 / (j as f64);
                             if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 {
-                                _point = _point + 50.0;
+                                _point = _point + 20.0;
                             }
                             feasiblePointsScore.push(_point);
                             feasiblePointsHeight.push ( ballH[j]);
@@ -278,8 +278,9 @@ impl MyStrategy {
                         }
 
                     }
+                    println!("num of feasibles {}",feasiblePoints.len() );
 
-                    println!("ball prediction : {}", ballPath[0].y);
+                    println!("ball prediction : {}", ballH[60]);
                     let mut biggestPoint = 0.0;
                     let mut bestHeight = 0.0;
                     for i in 0..feasiblePoints.len()-1 {
@@ -291,10 +292,10 @@ impl MyStrategy {
                         }
                     }
                     println!("ballPos x {} y {} z {},, TP x {} y {} z{}",(ballpos + (ballpos - *target).normalize()*(self.game.ball.radius) ).x,(ballpos + (ballpos - *target).normalize()*(self.game.ball.radius)).y,self.game.ball.height(),tochPoint.x,tochPoint.y,bestHeight);
-                    println!("timeball:: {}",self.travelTime(&ballpos));
-                    if (waitForBall > 0.2) {
-                        tochPoint.x = robotpos.x;
-                    }
+                    //println!("timeball:: {}",self.travelTime(&ballpos));
+                    // if (waitForBall > 0.2) {
+                    //     tochPoint.x = robotpos.x;
+                    // }
                     idealPath = (tochPoint - robotpos).th().deg();
                     if ((robotCurrentPath - idealPath).abs()) < 15.0 && (self.me.velocity()-ballVel).len() > 5.0 && (ballpos.dist(robotpos) < 5.0 && self.me.velocity().len() > 5.0) && self.game.ball.height() + self.game.ball.hVel() <= 4.0 {
                         jump = bestHeight * 6.0;
