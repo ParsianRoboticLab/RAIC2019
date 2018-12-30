@@ -63,7 +63,7 @@ impl Simulation {
         _e.set_velocity(&Self::clamp(&vel, ms));
         _e.set_position(&(pos + (vel * delta_time)));
         _e.set_height(h - (_rules.GRAVITY * delta_time * delta_time / 2.0));
-        _e.set_height(h - (_rules.GRAVITY * delta_time));
+        _e.set_velocity_h(vel.h - (_rules.GRAVITY * delta_time));
     }
 
     fn update(_me : &mut Robot, _ball: &mut Ball, _action: &Action, _rules: &Rules, delta_time: f64, col:&mut(&mut bool, &mut Vec3)) {
