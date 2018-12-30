@@ -180,11 +180,22 @@ impl MyStrategy {
         ////////
         let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
 //kickoff
+    println!("ball Vel::: {}",ballVel.len() );
         if ballVel.len() <= 0.000000001 {
             idealPath = (tochPoint - robotpos).th().deg();
             if robotvel.len() > 25.0  {
+
                 jump = self.game.ball.height() *4.0;
             }
+            if self.me.height() > 1.2 {
+                if robotpos.dist(ballpos) < 3.2  {
+                    jump = 15.0;
+                }
+                else {
+                jump = 0.0;
+                }
+            } 
+
             self.set_robot_vel(idealPath*3.1415/180.0 , 100.0 ,jump);
         } else {
         /////
