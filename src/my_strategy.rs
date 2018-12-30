@@ -88,10 +88,9 @@ impl MyStrategy {
         let r = &self.rules;
         for _ in 0..100 {
             Self::pure_gk(&me, &ball, r, &mut action, true);
-            let (col, vel) = Simulation::tick(&mut me, &mut ball, &action, &self.rules);
-            if col && vel.y > 1.0 {
-                println!("COL: {}, {:?}", col, vel);
-                return true
+            let (col, _) = Simulation::tick(&mut me, &mut ball, &action, &self.rules);
+            if col && ball.velocity().y > 0.0 && ball.position().y > -r.arena.depth/2.0 + 2.0{
+                return true;
             }
         }
         false
@@ -186,14 +185,8 @@ impl MyStrategy {
         let robotvel = self.me.velocity();
         let finalDir = (*target - ballpos).th();
         let mut idealPath = (ballpos - robotpos).th().deg();
-        let mut movementDir = ((ballpos - robotpos).th() - finalDir).deg();
+        let mut movementDir = ((ballpos - robotpos).th() - finalDir).normalize().deg();
         let ballVel = self.game.ball.velocity();
-        if movementDir >= 180.0 {
-            movementDir -= 360.0;
-        }
-        if movementDir < -180.0 {
-            movementDir += 360.0;
-        }
 
         println!("movementDir {}", movementDir );
 
@@ -212,12 +205,12 @@ impl MyStrategy {
         ////////
         let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
 //kickoff
-        if ballVel.len() <= 0.000000001 {
+        if ballVel.len() <= std::f64::EPSILON {
             idealPath = (tochPoint - robotpos).th().deg();
             if robotvel.len() > 25.0  {
                 jump = self.game.ball.height() *4.0;
             }
-            Self::set_robot_vel(idealPath*3.1415/180.0 , 100.0 ,jump, &mut self.action);
+            Self::set_robot_vel(idealPath * DEG2RAD , 100.0 ,jump, &mut self.action);
         } else {
         /////
             if self.game.ball.height() >= 6.0 {
@@ -286,9 +279,9 @@ fn pm(&mut self, target: &Vec2) {
 
 }
 
-fn gtp(targetMain: & Vec2, me: &Robot, _rules: &Rules, action: &mut Action) {
+fn gtp(target_main: &Vec2, me: &Robot, _rules: &Rules, action: &mut Action) {
 
-    let mut target = *targetMain;
+    let mut target = *target_main;
     if (target).y > _rules.arena.depth / 2.0 {
         (target).y = _rules.arena.depth / 2.0;
     }
