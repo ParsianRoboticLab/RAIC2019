@@ -24,6 +24,9 @@ pub struct MyStrategy{
     rules: Rules,
     game: Game,
     action: Action,
+    height_c: usize,
+    ball_path: [Vec3 ; 100],
+    cursor : usize,
 }
 
 impl Default for MyStrategy {
@@ -34,11 +37,15 @@ impl Default for MyStrategy {
             rules: Rules{..Default::default()},
             game: Game{..Default::default()},
             action: Action{..Default::default()},
+            height_c: 0,
+            ball_path: [Vec3::default(); 100],
+            cursor: 0,
         }
     }
 }
 
 impl Strategy for MyStrategy {
+
     fn act(&mut self, me: &Robot, _rules: &Rules, _game: &Game, _action: &mut Action) {
         // Choose Main Strategy (Coach) 1. DEF, 2. NORMAL, 3. OFF
         self.me = me.clone();
@@ -80,6 +87,16 @@ fn get_bisect(seg: &Seg2, vec: &Vec2) -> Seg2{
 
 
 impl MyStrategy {
+
+    fn update_ball_path(&mut self) {
+        let mut robots : Vec<&Robot> = Vec::default();
+        for r in &self.game.robots {
+            if !r.touch {
+                robots.push(r);
+            }
+        }
+        self.ball_path = Simulation::get_ball_path(&self.game.ball, &robots, &self.rules);
+    }
 
     fn will_hit_the_ball(&self) -> bool{
         let mut me = self.me.clone();
@@ -137,49 +154,62 @@ impl MyStrategy {
     }
 
     fn gk(&mut self) {
-        let y_goal = self.rules.arena.depth/-2.0 + 3.0;
-        //tof by Don
-        let clearSpot = Vec2::new(0.0, self.rules.arena.depth/2.0 + 20.0);
-        if self.game.ball.position().y < -10.0 && self.game.ball.height() < 4.0 {
-            self.kick(&clearSpot);
-        } else {
-        ////
-        // if self.game.ball.position().y < self.me.position().y {
-        //     self.kick(&Vec2::new(0.0, -y_goal));
-        // } else {
-        //     Self::pure_gk(&self.me, &self.game.ball, &self.rules,&mut self.action, false);
-        //     if self.will_hit_the_ball() {
-        //         self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
-        //     }
-        // }
+        let clear_spot = (self.game.ball.position() - (self.game.ball.position() + self.game.ball.velocity())).normalize() * 100.0;
         let y_goal = -self.rules.arena.depth/2.0 + 3.0;
-        let ball_pos = self.game.ball.position();
+        if self.game.ball.height() < 4.0 {
+            self.height_c += 1;
+        } else {
+            self.height_c = 0;
+        }
+        let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
         let goal_line = Seg2{
             origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:y_goal},
             terminal: Vec2{x:-self.rules.arena.goal_width/2.0, y:y_goal}
         };
-        let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
-        let biset = get_bisect(&goal_line, &ball_pos);
-        let mut target = biset.terminal();
-        if self.game.ball.velocity().y < -1.0 { // KICK
-            target = goal_line.intersection(ball_seg);
-            if !target.is_valid() {
-                target = Vec2::new(ball_pos.x, y_goal);
+        println!("LS: {}", self.height_c);
+        if self.game.ball.position().y < -10.0 && self.height_c > 10
+        && self.game.ball.velocity().y < 0.0 && (self.game.ball.position().y < self.me.position().y||goal_line.intersection(ball_seg).is_valid()){
+            if self.game.ball.position().y < self.me.position().y {
+                self.kick(&Vec2::new(0.0, -y_goal));
+            } else {
+                self.kick(&clear_spot);
             }
-        } else if self.game.ball.position().y  < 0.0 {
-            target = Vec2{x:self.game.ball.position().x, y:y_goal};
-        }
-        if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
-            target.x = -self.rules.arena.goal_width/2.0 + 1.5;
-        } else if target.x > self.rules.arena.goal_width/2.0 - 1.5{
-            target.x = self.rules.arena.goal_width/2.0 - 1.5;
-        }
+        } else {
+            ////
+            // if self.game.ball.position().y < self.me.position().y {
+            //     self.kick(&Vec2::new(0.0, -y_goal));
+            // } else {
+            //     Self::pure_gk(&self.me, &self.game.ball, &self.rules,&mut self.action, false);
+            //     if self.will_hit_the_ball() {
+            //         self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
+            //     }
+            // }
+            let ball_pos = self.game.ball.position();
+            let goal_line = Seg2{
+                origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:y_goal},
+                terminal: Vec2{x:-self.rules.arena.goal_width/2.0, y:y_goal}
+            };
+            let biset = get_bisect(&goal_line, &ball_pos);
+            let mut target = biset.terminal();
+            if self.game.ball.velocity().y < -1.0 { // KICK
+                target = goal_line.intersection(ball_seg);
+                if !target.is_valid() {
+                    target = Vec2::new(ball_pos.x, y_goal);
+                }
+            } else if self.game.ball.position().y  < 0.0 {
+                target = Vec2{x:self.game.ball.position().x, y:y_goal};
+            }
+            if target.x < -self.rules.arena.goal_width/2.0 + 1.5 {
+                target.x = -self.rules.arena.goal_width/2.0 + 1.5;
+            } else if target.x > self.rules.arena.goal_width/2.0 - 1.5{
+                target.x = self.rules.arena.goal_width/2.0 - 1.5;
+            }
 
-        Self::gtp(&target, &self.me, &self.rules, &mut self.action);
-        self.action.jump_speed = 0.0;
-        if ball_pos.dist(self.me.position()) < 3.0 && self.game.ball.height() > 2.5 {
-            self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
-        }
+            Self::gtp(&target, &self.me, &self.rules, &mut self.action);
+            self.action.jump_speed = 0.0;
+            if ball_pos.dist(self.me.position()) < 3.0 && self.game.ball.height() > 2.5 {
+                self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
+            }
 
         }
     }

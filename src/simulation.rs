@@ -121,4 +121,18 @@ impl Simulation {
             Self::update_ball(_ball, _rules, delta_time / 50 as f64);
         }
     }
+
+    fn get_ball_path(_ball : &Ball, _robots: &Vec<&Robot>, _rules : &Rules) -> [Vec3;100] {
+        let mut ball = _ball.clone();
+        let mut robots : Vec<Robot> = Vec::default();
+        for r in _robots {
+            let a = (*r).clone();
+            robots.push(a);
+        }
+        let mut res = [Vec3::default(); 100];
+        for _ in 0..res.len() {
+
+        }
+        res
+    }
 }
