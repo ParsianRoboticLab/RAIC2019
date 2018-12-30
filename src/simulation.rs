@@ -57,11 +57,12 @@ impl Simulation {
 
     fn move_e(_e: &mut Entity3, delta_time: f64, _rules: &Rules) {
         let pos = _e.position3();
-        let vel = _e.velocity3();
-        let h = _e.height3();
+        let mut vel = _e.velocity3();
         let ms = _e.max_speed();
         _e.set_velocity(&Self::clamp(&vel, ms));
+        vel = _e.velocity3();
         _e.set_position(&(pos + (vel * delta_time)));
+        let h = _e.height3();
         _e.set_height(h - (_rules.GRAVITY * delta_time * delta_time / 2.0));
         _e.set_velocity_h(vel.h - (_rules.GRAVITY * delta_time));
     }
