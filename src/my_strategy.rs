@@ -24,7 +24,6 @@ pub struct MyStrategy{
     rules: Rules,
     game: Game,
     action: Action,
-    posPID : PID
 }
 
 impl Default for MyStrategy {
@@ -35,7 +34,6 @@ impl Default for MyStrategy {
             rules: Rules{..Default::default()},
             game: Game{..Default::default()},
             action: Action{..Default::default()},
-            posPID: PID::new(5.0,0.0,0.0),
         }
     }
 }
@@ -83,37 +81,71 @@ fn get_bisect(seg: &Seg2, vec: &Vec2) -> Seg2{
 
 impl MyStrategy {
 
+    fn will_hit_the_ball(&self) -> bool{
+        let mut me = self.me.clone();
+        let mut ball = self.game.ball.clone();
+        let mut action = self.action;
+        let r = &self.rules;
+        for _ in 0..100 {
+            Self::pure_gk(&me, &ball, r, &mut action, true);
+            let (col, vel) = Simulation::tick(&mut me, &mut ball, &action, &self.rules);
+            if col && vel.y > 1.0 {
+                println!("COL: {}, {:?}", col, vel);
+                return true
+            }
+        }
+        false
+    }
 
-    fn gk(&mut self) {
-        let y_goal = self.rules.arena.depth/-2.0 + 3.0;
-        let ball_pos = self.game.ball.position();
+    fn pure_gk(me: &Robot, ball: &Ball, rules:&Rules, action: &mut Action, s: bool) {
+        let y_goal = rules.arena.depth/-2.0 + 3.0;
+        let ball_pos = ball.position();
         let goal_line = Seg2{
-            origin:   Vec2{x: self.rules.arena.goal_width/2.0, y:y_goal},
-            terminal: Vec2{x:self.rules.arena.goal_width/-2.0, y:y_goal}
+            origin:   Vec2{x: rules.arena.goal_width/ 2.0, y:y_goal},
+            terminal: Vec2{x: rules.arena.goal_width/-2.0, y:y_goal}
         };
-        let ball_seg = Seg2::new(self.game.ball.position(), self.game.ball.velocity()*100.0);
+        let ball_seg = Seg2::new(ball.position(), ball.velocity()*100.0);
         let biset = get_bisect(&goal_line, &ball_pos);
         let mut target = biset.terminal();
-        if self.game.ball.velocity().y < -1.0 { // KICK
-            target = goal_line.intersection(ball_seg);
+        if ball.velocity().y < -1.0 { // KICK
+            // if ball.position().y < -15.0 {
+            //     target = ball.position();
+            // } else {
+                target = goal_line.intersection(ball_seg);
+            // }
             if !target.is_valid() {
                 target = Vec2::new(ball_pos.x, y_goal);
             }
-        } else if self.game.ball.position().y  < 0.0 {
-            target = Vec2{x:self.game.ball.position().x, y:y_goal};
+        } else if ball.position().y  < 0.0 {
+            target = Vec2{x: ball.position().x, y:y_goal};
         }
-        if target.x < self.rules.arena.goal_width/-2.0 + 1.5 {
-            target.x =self.rules.arena.goal_width/-2.0 + 1.5;
-        } else if target.x > self.rules.arena.goal_width/2.0 - 1.5{
-            target.x = self.rules.arena.goal_width/2.0 - 1.5;
-        }
-
-        self.gtp(&target);
-        self.action.jump_speed = 0.0;
-        if ball_pos.dist(self.me.position()) < 3.0 && self.game.ball.height() > 2.5 {
-            self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
+        if target.x < rules.arena.goal_width/-2.0 + 1.5 {
+            target.x =rules.arena.goal_width/-2.0 + 1.5;
+        } else if target.x > rules.arena.goal_width/2.0 - 1.5{
+            target.x = rules.arena.goal_width/2.0 - 1.5;
         }
 
+        Self::gtp(&target, me, rules, action);
+
+        if s {
+            action.jump_speed = rules.ROBOT_MAX_JUMP_SPEED;
+            action.target_velocity_y = action.jump_speed;
+        } else {
+            action.jump_speed = 0.0;
+            action.target_velocity_y = action.jump_speed;
+        }
+    }
+
+    fn gk(&mut self) {
+        let y_goal = self.rules.arena.depth/-2.0 + 3.0;
+        if self.game.ball.position().y < self.me.position().y {
+                self.kick(&Vec2::new(0.0, -y_goal));
+        } else {
+            Self::pure_gk(&self.me, &self.game.ball, &self.rules,&mut self.action, false);
+            if self.will_hit_the_ball() {
+                self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
+            }
+        }
     }
 
     fn ballTouchPrediction(&mut self) -> Vec2 {
@@ -185,13 +217,13 @@ impl MyStrategy {
             if robotvel.len() > 25.0  {
                 jump = self.game.ball.height() *4.0;
             }
-            self.set_robot_vel(idealPath*3.1415/180.0 , 100.0 ,jump);
+            Self::set_robot_vel(idealPath*3.1415/180.0 , 100.0 ,jump, &mut self.action);
         } else {
         /////
             if self.game.ball.height() >= 6.0 {
                 let touchPrediction = self.ballTouchPrediction();
                 let mut locationByPredict = touchPrediction + (touchPrediction - *target).normalize() * (0.1 + self.me.radius + self.game.ball.radius + (self.game.ball.height() - self.game.ball.radius) * 0.2) + ballVel * 0.05;
-                self.gtp(&locationByPredict);
+                Self::gtp(&locationByPredict, &self.me, &self.rules, &mut self.action);
             } else {
 
 ////// New prediction
@@ -199,15 +231,15 @@ impl MyStrategy {
                     let mut ballPath = [Vec2::new(0.0,0.0) ; 600];
                     let mut ballH = [0.0 ; 600];
                     for j in 0..599 {
-                            Simulation::tick_ball(new_ball, &self.rules, 1.0); 
-                            ballPath[j] = new_ball.position();   
+                            Simulation::tick_ball(new_ball, &self.rules, 1.0);
+                            ballPath[j] = new_ball.position();
                             ballH[j] = new_ball.height();
                         }
 
-                    println!("ball prediction : {}", ballPath[0].y); 
-                        
+                    println!("ball prediction : {}", ballPath[0].y);
+
                     for i in 0..599 {
-                        
+
                         let bPIF = ballPath[i]+ (ballPath[i] - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
                         if (self.travelTime(&bPIF) - ((i as f64) / 60.0)) < 0.01 && (ballH[i] < 3.0) {
                             tochPoint = bPIF;
@@ -243,7 +275,7 @@ impl MyStrategy {
                 }
 
 
-                self.set_robot_vel(idealPath*DEG2RAD ,100.0,jump);
+                Self::set_robot_vel(idealPath*DEG2RAD ,100.0,jump, &mut self.action);
             }
         }
 
@@ -254,36 +286,34 @@ fn pm(&mut self, target: &Vec2) {
 
 }
 
-fn gtp(&mut self, targetMain: & Vec2) {
+fn gtp(targetMain: & Vec2, me: &Robot, _rules: &Rules, action: &mut Action) {
 
     let mut target = *targetMain;
-    if (target).y > self.rules.arena.depth / 2.0 {
-        (target).y = self.rules.arena.depth / 2.0;
+    if (target).y > _rules.arena.depth / 2.0 {
+        (target).y = _rules.arena.depth / 2.0;
     }
-    if target.y < self.rules.arena.depth / -2.0 {
-        target.y = self.rules.arena.depth / -2.0;
+    if target.y < _rules.arena.depth / -2.0 {
+        target.y = _rules.arena.depth / -2.0;
     }
-    if target.x > self.rules.arena.width / 2.0 {
-        target.x = self.rules.arena.width / 2.0;
+    if target.x > _rules.arena.width / 2.0 {
+        target.x = _rules.arena.width / 2.0;
     }
-    if target.x < self.rules.arena.width / -2.0 {
-        target.x = self.rules.arena.width / -2.0;
+    if target.x < _rules.arena.width / -2.0 {
+        target.x = _rules.arena.width / -2.0;
     }
 
-    let dist = self.me.position().dist(target);
-    let diff = target - self.me.position();
+    let dist = me.position().dist(target);
+    let diff = target - me.position();
     let angle = (diff.y).atan2(diff.x);
-    let a  = self.posPID.run(dist);
-    println!("{}**{}**{}", dist, angle, a);
-    self.set_robot_vel(angle, a , 0.0);
+    Self::set_robot_vel(angle, 5.0 * dist , 0.0, action);
 
 
 }
 
-fn set_robot_vel(&mut self, angle : f64, vel: f64, jump : f64) {
-    self.action = Action {
+fn set_robot_vel(angle : f64, vel: f64, jump : f64, action: &mut Action) {
+    *action = Action {
         target_velocity_x: vel*angle.cos(),
-        target_velocity_y: 0.0,
+        target_velocity_y: 15.0,
         target_velocity_z: vel*angle.sin(),
         jump_speed: jump,
         use_nitro: false,
