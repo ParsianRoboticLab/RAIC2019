@@ -77,7 +77,6 @@ impl Entity3 for Robot {
         self.velocity_y = h;
     }
 
-
 }
 
 impl Entity3 for Ball {
@@ -122,7 +121,6 @@ impl Entity3 for Ball {
     fn set_touch_normal(&mut self, v: &Vec3) {
 
     }
-    
     fn set_velocity_h(&mut self, h: f64){
         self.velocity_y = h;
     }
