@@ -65,6 +65,13 @@ impl std::ops::Add for Vec3 {
     }
 }
 
+// Addition for vectors
+impl std::ops::AddAssign for Vec3 {
+    fn add_assign(&mut self, b: Self) {
+        *self = Self::new(self.x + b.x, self.y + b.y, self.h + b.h);
+    }
+}
+
 // Multiplying vector by a number
 impl std::ops::Mul<f64> for Vec3 {
     type Output = Self;
