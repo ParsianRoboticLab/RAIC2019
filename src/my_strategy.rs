@@ -48,7 +48,7 @@ impl Strategy for MyStrategy {
     	// Choose My Role 1. GK, 2. DEF, 3. OFF 4. SUP
         let my_role = self.coach.find_role(me, _game, _rules);
     	// Execute My Role
-        let oppGoal = Vec2::new(0.0, self.rules.arena.depth/2.0 + 20.0);
+        let oppGoal = Vec2::new(0.0, -self.rules.arena.depth/2.0 + 20.0);
 
         match my_role {
             Role::NONE =>  println!("No Role is Selected"),
@@ -90,6 +90,7 @@ impl MyStrategy {
             Self::pure_gk(&me, &ball, r, &mut action, true);
             let (col, _) = Simulation::tick(&mut me, &mut ball, &action, &self.rules);
             if col && ball.velocity().y > 0.0 && ball.position().y > -r.arena.depth/2.0 + 2.0{
+                println!("COL:COL:");
                 return true;
             }
         }
@@ -227,7 +228,7 @@ impl MyStrategy {
                             Simulation::tick_ball(new_ball, &self.rules, 1.0);
                             ballPath[j] = new_ball.position();
                             ballH[j] = new_ball.height();
-                        }
+                    }
 
                     println!("ball prediction : {}", ballPath[0].y);
 

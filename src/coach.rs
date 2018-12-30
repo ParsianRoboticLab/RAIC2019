@@ -31,6 +31,10 @@ impl Coach {
     }
 
     fn find_role(&mut self, me: &Robot, _game: &Game, _rules: &Rules) -> Role {
+		// if me.id == 1 {
+		// 	return Role::GK;
+		// }
+		// Role::OFF
 		let our_goal = Vec2::new(0.0, -_rules.arena.depth/2.0);
         for _robot in &_game.robots {
 			let robot = _robot as &Entity;
