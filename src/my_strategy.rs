@@ -216,8 +216,7 @@ impl MyStrategy {
             if distToVmax <= target.dist(robotpos) {
                 timeR = timeToVmax + ((*target).dist(robotpos) - distToVmax) / self.rules.ROBOT_MAX_GROUND_SPEED;
             } else {
-                //tof
-                timeR = (*target).dist(robotpos) / robotVel.len();
+                timeR = (-1.0 * robotVel.len() + (robotVel.len() * robotVel.len() + 2.0 * self.rules.ROBOT_ACCELERATION * (*target).dist(robotpos)).sqrt()) / self.rules.ROBOT_MAX_GROUND_SPEED;
             }
         }
         return timeR;
