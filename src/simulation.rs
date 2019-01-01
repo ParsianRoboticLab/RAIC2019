@@ -134,8 +134,7 @@ impl Simulation {
     fn move_e(_e: &mut Entity3, delta_time: f64, _rules: &Rules) {
         let pos = _e.position3();
         let mut vel = _e.velocity3();
-        let ms = _e.max_speed();
-        _e.set_velocity(&Self::clamp(&vel, ms));
+        _e.set_velocity(&Self::clamp(&vel, _rules.MAX_ENTITY_SPEED));
         vel = _e.velocity3();
         _e.set_position(&(pos + (vel * delta_time)));
         let h = _e.height3();
@@ -257,5 +256,19 @@ impl Simulation {
         for _ in 0 .. _rules.MICROTICKS_PER_TICK - 1 {
             Self::update_game(_game, _rules, delta_time / _rules.MICROTICKS_PER_TICK as f64);
         }
+    }
+
+    fn get_ball_path(_ball : &Ball, _robots: &Vec<&Robot>, _rules : &Rules) -> [Vec3;100] {
+        let mut ball = _ball.clone();
+        let mut robots : Vec<Robot> = Vec::default();
+        for r in _robots {
+            let a = (*r).clone();
+            robots.push(a);
+        }
+        let mut res = [Vec3::default(); 100];
+        for _ in 0..res.len() {
+
+        }
+        res
     }
 }
