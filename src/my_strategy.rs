@@ -372,8 +372,9 @@ impl MyStrategy {
                 let mut feasiblePointsTickDiff = vec![0.0 ; 2];
                 let mut feasiblePointsTickNum = vec![0.0;2];
                 let mut theta_app = 15.0;
+                let mut new_game = self.game.clone();
                 for j in 0..120 {
-                    Simulation::tick_ball(new_ball, &self.rules, 1.0);
+                    Simulation::tick_game(&mut new_game, &self.rules);
                     ballPath[j] = new_ball.position();
                     ballH[j] = new_ball.height();
                     let rulesCopy = self.rules.clone();
