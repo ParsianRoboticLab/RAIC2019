@@ -144,7 +144,7 @@ impl MyStrategy {
         let y_goal = self.rules.arena.depth/-2.0 + 3.0;
         //tof by Don
         let clearSpot = Vec2::new(0.0, self.rules.arena.depth/2.0 + 20.0);
-        if self.game.ball.position().y + self.game.ball.velocity().y < -20.0 {//}  && self.game.ball.height() < 3.0 && self.game.ball.velocity().len() < 10.0 {
+        if self.game.ball.position().y + self.game.ball.velocity().y < -20.0  {//}  && self.game.ball.height() < 3.0 && self.game.ball.velocity().len() < 10.0 {
             self.kick(&clearSpot,kickMode::clearDanger);
         } else {
             ////
@@ -182,6 +182,10 @@ impl MyStrategy {
             Self::gtp(&target, &self.me, &self.rules, &mut self.action);
             self.action.jump_speed = 0.0;
             if ball_pos.dist(self.me.position()) < 3.0 && self.game.ball.height() > 2.5 {
+                self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
+            }
+            let ballHeight = self.game.ball.height();
+            if self.ifJumpTouchPoint(15.0,Vec3::new(ball_pos.x,ball_pos.y,ballHeight),Vec3::new(ball_pos.x,ball_pos.y,ballHeight),&(kickMode::clearDanger),false) {
                 self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
             }
 
