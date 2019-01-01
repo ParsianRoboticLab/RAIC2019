@@ -168,11 +168,13 @@ impl MyStrategy {
         };
         println!("LS: {}", self.height_c);
         if self.game.ball.position().y < -10.0 && self.height_c > 10
-        && self.game.ball.velocity().y < 0.0 && (self.game.ball.position().y < self.me.position().y||goal_line.intersection(ball_seg).is_valid()){
+        && self.game.ball.velocity().y < 1.5{
             if self.game.ball.position().y < self.me.position().y {
                 self.kick(&Vec2::new(0.0, -y_goal));
-            } else {
+            } else if goal_line.intersection(ball_seg).is_valid() {
                 self.kick(&clear_spot);
+            } else {
+                self.kick(&Vec2::new(0.0, -y_goal));
             }
         } else {
             ////
