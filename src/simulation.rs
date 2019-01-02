@@ -253,8 +253,8 @@ impl Simulation {
 
     fn tick_game(_game: &mut Game, _rules: &Rules) {
         let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
-        for _ in 0 .. _rules.MICROTICKS_PER_TICK - 1 {
-            Self::update_game(_game, _rules, delta_time / _rules.MICROTICKS_PER_TICK as f64);
+        for _ in 0 .. 30 - 1 {
+            Self::update_game(_game, _rules, delta_time / 30 as f64);
         }
     }
 

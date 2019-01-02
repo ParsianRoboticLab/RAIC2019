@@ -7,6 +7,7 @@ const EPSILON : f64 = 1.0e-6;
 include!("pid.rs");
 include!("vec2.rs");
 include!("def.rs");
+include!("draw.rs");
 include!("entity.rs");
 include!("coach.rs");
 include!("angdeg.rs");
@@ -27,6 +28,7 @@ pub struct MyStrategy{
     height_c: usize,
     ball_path: [Vec3 ; 100],
     cursor : usize,
+    myDrawer : drawer,
 }
 
 impl Default for MyStrategy {
@@ -40,6 +42,7 @@ impl Default for MyStrategy {
             height_c: 0,
             ball_path: [Vec3::default(); 100],
             cursor: 0,
+            myDrawer : drawer::default(),
         }
     }
 }
@@ -69,6 +72,10 @@ impl Strategy for MyStrategy {
         // ////println!("Role: {:#?}", my_role);
         // ////println!("Action: {:#?}", _action);
 
+    }
+
+    fn custom_rendering(&mut self) -> String {
+        return self.myDrawer.createFinalString();
     }
 
 }
@@ -158,13 +165,7 @@ impl MyStrategy {
     }
 
     fn gk(&mut self) {
-<<<<<<< HEAD
-        let y_goal = self.rules.arena.depth/-2.0 + 3.0;
-        //tof by Don
-        let clearSpot = Vec2::new(0.0, self.rules.arena.depth/2.0 + 20.0);
-        if self.game.ball.position().y + self.game.ball.velocity().y < -20.0  {//}  && self.game.ball.height() < 3.0 && self.game.ball.velocity().len() < 10.0 {
-            self.kick(&clearSpot,kickMode::clearDanger);
-=======
+
         let clear_spot = (self.game.ball.position() - (self.game.ball.position() + self.game.ball.velocity())).normalize() * 100.0;
         let y_goal = -self.rules.arena.depth/2.0 + 3.0;
         if self.game.ball.height() < 4.0 {
@@ -187,7 +188,6 @@ impl MyStrategy {
             } else {
                 self.kick(&Vec2::new(0.0, -y_goal), kickMode::clearDanger);
             }
->>>>>>> 9e6cc66a2182cee8ab841058719437616ab151bd
         } else {
             ////
             // if self.game.ball.position().y < self.me.position().y {
@@ -284,9 +284,10 @@ impl MyStrategy {
         let mut virtualVel = vel;
         if virtualVel.h == 0.0 {
             virtualVel.h = jump_speed*0.9637;
-        } else {
-            virtualVel.h = jump_speed - virtualVel.h * 0.05;
         }
+        // } else {
+        //     virtualVel.h = jump_speed - virtualVel.h * 0.05;
+        // }
         let maxTime = 2.0*virtualVel.h/self.rules.GRAVITY;
         let delta_time = 0.01;
         let mut target = _target;
@@ -297,18 +298,23 @@ impl MyStrategy {
             }
         }
         ////println! ("newwwwwwwwwwwwww....................................");
+        let mut jumpPath = vec! [Vec3::new(0.0,0.0,0.0) ; 2];
         for i in 0..((100.0*maxTime) as i64) -1 {
+
             virtualPos += (virtualVel * delta_time);
             virtualPos.h -= (self.rules.GRAVITY*delta_time*delta_time/2.0);
             virtualVel.h -= self.rules.GRAVITY * delta_time;
             ////println!("touch X {}, touch Y {}, touch Z {}",_touchPoint.x,_touchPoint.y,_touchPoint.h);
             ////println!("predict X {}, predict Y {}, predict Z {}",virtualPos.x,virtualPos.y,virtualPos.h);
             //println!(" dist : {}" , virtualPos.toVec2().dist(_touchPoint.toVec2()));
+            jumpPath.push(virtualPos);
             if  *kMode == kickMode::clearDanger && virtualPos.dist(target) <= self.me.radius +self.game.ball.radius - 0.5 && virtualPos.y <= target.y -0.5 && (((virtualPos.h - target.h).abs() < 0.5)  || (_aggresive == false)){
                 return true;
             }
-
             if *kMode != kickMode::clearDanger && virtualPos.toVec2().dist(_touchPoint.toVec2()) <= 0.1 && virtualPos.dist(target) <= self.me.radius +self.game.ball.radius - 0.5 && virtualPos.y <= target.y && (((virtualPos.h - target.h).abs() < 0.5)  || (_aggresive == false)){//  (((virtualPos.h - target.h).abs() < 0.5)  || (_aggresive == false)) {
+                for i in 0..jumpPath.len() {
+                        self.myDrawer.draw(jumpPath[i],1.0,(1.0,0.0,0.0));
+                }
                 return true;
                 while true {
 
@@ -380,7 +386,11 @@ impl MyStrategy {
         ////////
         let mut tochPoint = ballpos + (ballpos - *target).normalize()*(self.game.ball.radius + self.me.radius - 0.5);
 //kickoff
-        if ballVel.len() <= std::f64::EPSILON {
+        if ballVel.len() <= std::f64::EPSILON  {
+            self.myDrawer.draw(self.game.ball.position3(),5.0,(1.0,0.0,0.0));
+            self.myDrawer.draw(self.me.position3(),5.0,(0.0,1.0,0.0));
+
+            self.myDrawer.drawLine(self.me.position3(),self.game.ball.position3(),(0.0,0.0,1.0));
             idealPath = (tochPoint - robotpos).th().deg();
             if robotvel.len() > 29.5  {
 
@@ -395,6 +405,7 @@ impl MyStrategy {
                 }
             }
 
+            println!("bllSpeed : {}", self.game.ball.velocity().len());
             Self::set_robot_vel(idealPath*DEG2RAD , 100.0 ,jump, &mut self.action);
         } else {
             ////// New prediction
@@ -410,9 +421,12 @@ impl MyStrategy {
                 let mut theta_app = 15.0;
                 let mut new_game = self.game.clone();
                 for j in 0..120 {
+
                     Simulation::tick_game(&mut new_game, &self.rules);
-                    ballPath[j] = new_ball.position();
-                    ballH[j] = new_ball.height();
+
+                    ballPath[j] = new_game.ball.position();
+                    self.myDrawer.draw(new_game.ball.position3(),2.0,(1.0,0.0,0.0));
+                    ballH[j] = new_game.ball.height();
                     let rulesCopy = self.rules.clone();
                     let meCopy = self.me.clone();
                     let mut bPIF = Vec2::new(0.0,0.0);
@@ -477,7 +491,7 @@ impl MyStrategy {
                 let mut findAgg = false;
                 for jSpeed in (1..16).rev() {
                     //println!("jSpeed :{}" , jSpeed);
-                    if self.ifJumpTouchPoint(jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kMode),true) && waitForBall <= 0.1{
+                    if self.ifJumpTouchPoint(jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kMode),true) && waitForBall <= 0.1 && self.me.velocity().len() >= 29.5{
                         jump = (jSpeed as f64);
                         findAgg = true;
                         break;
@@ -487,7 +501,7 @@ impl MyStrategy {
                 }
                 if findAgg == false {
                     for jSpeed in (1..16).rev() {
-                        if self.ifJumpTouchPoint(jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kMode),false) && waitForBall <= 0.1{
+                        if self.ifJumpTouchPoint(jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kMode),false) && waitForBall <= 0.1 && self.me.velocity().len() >= 29.5{
                             jump = (jSpeed as f64);
                             findAgg = true;
                             break;
