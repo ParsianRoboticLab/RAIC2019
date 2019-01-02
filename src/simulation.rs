@@ -233,19 +233,19 @@ impl Simulation {
             }
         }
 
-        for i in 0 .. _game.robots.len() {
-            for j in 0 .. _game.robots.len() {
-                let mut jump_speed = 0.0;
-                if _game.robots[i].touch && !_game.robots[j].touch {
-                    jump_speed = _rules.ROBOT_MAX_JUMP_SPEED;
-                } else if !_game.robots[i].touch && _game.robots[j].touch {
-                    jump_speed = -_rules.ROBOT_MAX_JUMP_SPEED;
-
-                }
-                let mut a = _game.robots[j].clone();
-                Self::collide_entities(&mut _game.robots[i], &mut a, jump_speed, _rules);
-            }
-        }
+        // for i in 0 .. _game.robots.len() {
+        //     for j in 0 .. _game.robots.len() {
+        //         let mut jump_speed = 0.0;
+        //         if _game.robots[i].touch && !_game.robots[j].touch {
+        //             jump_speed = _rules.ROBOT_MAX_JUMP_SPEED;
+        //         } else if !_game.robots[i].touch && _game.robots[j].touch {
+        //             jump_speed = -_rules.ROBOT_MAX_JUMP_SPEED;
+        //
+        //         }
+        //         let mut a = _game.robots[j].clone();
+        //         Self::collide_entities(&mut _game.robots[i], &mut a, jump_speed, _rules);
+        //     }
+        // }
 
 
 
