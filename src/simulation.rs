@@ -198,12 +198,15 @@ impl Simulation {
         }
     }
 
-    fn update_game(_game : &mut Game, _rules: &Rules, delta_time: f64) {
+    fn update_game(_my_robot : &Robot, _game : &mut Game, _rules: &Rules, delta_time: f64) {
 
         Self::move_e(&mut _game.ball, delta_time, _rules);
         Self::collide_with_arena(&mut _game.ball, 0.0, _rules);
 
         for _me in &mut _game.robots {
+            if _me.id ==  _my_robot.id{
+                continue;
+            }
             let mut jump_speed = 0.0;
             if _me.touch {
                 let mut target_vel = Self::clamp(&_me.velocity3(), // <- this should be action.target_vel()
@@ -217,13 +220,15 @@ impl Simulation {
                 }
                 // TODO : USE NITRO
             } else {
-                jump_speed = _rules.ROBOT_MAX_JUMP_SPEED;
+                jump_speed = _me.velocity3().h;// _rules.ROBOT_MAX_JUMP_SPEED;
             }
             Self::move_e(_me, delta_time, _rules);
             _me.radius = _rules.ROBOT_MIN_RADIUS + (_rules.ROBOT_MAX_RADIUS - _rules.ROBOT_MIN_RADIUS) * jump_speed // <- This should be action.jump_speed
              / _rules.ROBOT_MAX_JUMP_SPEED;
-
-            Self::collide_entities(_me, &mut _game.ball, jump_speed, _rules);
+             //tof js ro 0 gozashtam
+            if _me.position3().h > 0.0 || _me.velocity().len() < 0.1{
+                Self::collide_entities(_me, &mut _game.ball, 0.0, _rules);
+            }
             let collision_normal = Self::collide_with_arena(_me, jump_speed, _rules);
             if ! collision_normal.is_valid() {
                 _me.touch = false;
@@ -251,10 +256,10 @@ impl Simulation {
 
     }
 
-    fn tick_game(_game: &mut Game, _rules: &Rules) {
+    fn tick_game(_my_robot: &Robot,_game: &mut Game, _rules: &Rules) {
         let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
-        for _ in 0 .. 30 - 1 {
-            Self::update_game(_game, _rules, delta_time / 30 as f64);
+        for _ in 0 .. 50 - 1 {
+            Self::update_game(_my_robot,_game, _rules, delta_time / 50 as f64);
         }
     }
 
