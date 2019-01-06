@@ -101,8 +101,8 @@ impl Simulation {
             let _radius = _ball.radius() + _robot.radius();
             for i in (0..360).step_by(5) {
                 for j in (0..360).step_by(5) {
-                    _theta = (i as f64) * 180.0/3.1415;
-                    _phi = (j as f64) * 180.0/3.1415;
+                    _theta = (i as f64) * RAD2DEG;
+                    _phi = (j as f64) * RAD2DEG;
                     _x = _radius * (_phi.sin())*(_theta.cos());
                     _y = _radius * (_phi.cos())*(_theta.sin());
                     _z = _radius * (_phi.cos());
@@ -198,13 +198,13 @@ impl Simulation {
         }
     }
 
-    fn update_game(_my_robot : &Robot, _game : &mut Game, _rules: &Rules, delta_time: f64) {
+    fn update_game(_id : i32, _game : &mut Game, _rules: &Rules, delta_time: f64) {
 
         Self::move_e(&mut _game.ball, delta_time, _rules);
         Self::collide_with_arena(&mut _game.ball, 0.0, _rules);
 
         for _me in &mut _game.robots {
-            if _me.id ==  _my_robot.id{
+            if _me.id == _id {
                 continue;
             }
             let mut jump_speed = 0.0;
@@ -256,23 +256,19 @@ impl Simulation {
 
     }
 
-    fn tick_game(_my_robot: &Robot,_game: &mut Game, _rules: &Rules) {
+    fn tick_game(_id: i32, _game: &mut Game, _rules: &Rules) {
         let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
         for _ in 0 .. 50 - 1 {
-            Self::update_game(_my_robot,_game, _rules, delta_time / 50 as f64);
+            Self::update_game(_id, _game, _rules, delta_time / 50 as f64);
         }
     }
 
-    fn get_ball_path(_ball : &Ball, _robots: &Vec<&Robot>, _rules : &Rules) -> [Vec3;100] {
-        let mut ball = _ball.clone();
-        let mut robots : Vec<Robot> = Vec::default();
-        for r in _robots {
-            let a = (*r).clone();
-            robots.push(a);
-        }
-        let mut res = [Vec3::default(); 100];
-        for _ in 0..res.len() {
-
+    fn get_ball_path(_me: i32, _game: &Game, _rules : &Rules) -> [Ball;200] {
+        let mut res = [Ball::default(); 200];
+        let mut game = &mut _game.clone();
+        for i in 0..res.len() {
+            Self::tick_game(_me, &mut game, _rules);
+            res[i] = game.ball;
         }
         res
     }
