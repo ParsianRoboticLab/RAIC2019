@@ -51,7 +51,7 @@ impl drawer {
                 \"r\": {},
                 \"g\": {},
                 \"b\": {},
-                \"a\": 0.8
+                \"a\": 0.5
             }}
         }}
         ",self.sphereList[i].center.x,self.sphereList[i].center.h,self.sphereList[i].center.y,self.sphereList[i].rad,self.sphereList[i].color.0,self.sphereList[i].color.1,self.sphereList[i].color.2)[..]);
@@ -98,14 +98,17 @@ impl drawer {
     self.lineList.clear();
     self.sphereList.clear();
 
-    return finalRes;
+    finalRes
 }
+
 fn draw(&mut self, pos : Vec3, rad : f64, color : (f64,f64,f64)) {
     self.sphereList.push(Sphere::new(rad,pos,color));
 }
+
 fn drawLine(&mut self, p1 : Vec3, p2 : Vec3, color : (f64,f64,f64)) {
     self.lineList.push(Seg3::new(p1,p2,color));
 }
+
 fn drawText(&mut self, input : String) {
     self.debugTxt = input;
 }
