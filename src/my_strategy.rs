@@ -9,7 +9,6 @@ include!("vec2.rs");
 include!("def.rs");
 include!("draw.rs");
 include!("entity.rs");
-include!("coach.rs");
 include!("angdeg.rs");
 include!("seg2.rs");
 include!("line2.rs");
@@ -19,29 +18,25 @@ include!("circle2.rs");
 include!("vec3.rs");
 include!("entity3.rs");
 
-pub struct MyStrategy{
-    coach : Coach,
+pub struct MyStrategy {
     me : Robot,
     rules: Rules,
     game: Game,
     action: Action,
     height_c: usize,
-    ball_path: [Vec3 ; 100],
-    cursor : usize,
+    ball_future: [Ball ; 200],
     myDrawer : drawer,
 }
 
 impl Default for MyStrategy {
     fn default() -> Self {
         Self {
-            coach: Coach::default(),
             me: Robot{..Default::default()},
             rules: Rules{..Default::default()},
             game: Game{..Default::default()},
             action: Action{..Default::default()},
             height_c: 0,
-            ball_path: [Vec3::default(); 100],
-            cursor: 0,
+            ball_future: [Ball::default(); 200],
             myDrawer : drawer::default(),
         }
     }
@@ -50,32 +45,31 @@ impl Default for MyStrategy {
 impl Strategy for MyStrategy {
 
     fn act(&mut self, me: &Robot, _rules: &Rules, _game: &Game, _action: &mut Action) {
+        if !me.touch {
+            return
+        }
         // Choose Main Strategy (Coach) 1. DEF, 2. NORMAL, 3. OFF
         self.me = me.clone();
         self.rules = _rules.clone();
         self.game = _game.clone();
-        self.coach.choose_mode(_game, _rules);
+        self.update_ball_path();
         // Choose My Role 1. GK, 2. DEF, 3. OFF 4. SUP
-        let my_role = self.coach.find_role(me, _game, _rules);
         // Execute My Role
-        let oppGoal = Vec2::new(0.0, self.rules.arena.depth/2.0 + 20.0);
+        let opp_goal = Vec2::new(0.0, self.rules.arena.depth/2.0 + 20.0);
 
-        match my_role {
-            Role::NONE =>  println!("No Role is Selected"),
-            Role::GK   =>  self.gk(),
-            Role::DEF  =>  println!("The color is Red!"),
-            Role::SUP  =>  println!("The color is Red!"),
-            Role::OFF  =>  self.pm(&oppGoal),
+        if me.id%2 == 1 {
+            self.gk();
+        } else {
+            self.pm(&opp_goal);
         }
-        // Fill Action (Control)
+
+
         *_action = self.action;
-        // ////println!("Role: {:#?}", my_role);
-        // ////println!("Action: {:#?}", _action);
 
     }
 
     fn custom_rendering(&mut self) -> String {
-        return self.myDrawer.createFinalString();
+        self.myDrawer.createFinalString()
     }
 
 }
@@ -100,13 +94,10 @@ enum kickMode {
 impl MyStrategy {
 
     fn update_ball_path(&mut self) {
-        let mut robots : Vec<&Robot> = Vec::default();
-        for r in &self.game.robots {
-            if !r.touch {
-                robots.push(r);
-            }
+        self.ball_future = Simulation::get_ball_path(self.me.id, &self.game, &self.rules);
+        for i in 0..self.ball_future.len() {
+            self.myDrawer.draw(self.ball_future[i].position3(), self.rules.BALL_RADIUS, (0.5,0.5,0.5));
         }
-        self.ball_path = Simulation::get_ball_path(&self.game.ball, &robots, &self.rules);
     }
 
     fn will_hit_the_ball(&self) -> bool{
@@ -325,8 +316,8 @@ impl MyStrategy {
         let mut answerDist = 1000000.0;
         for i in (0..360).step_by(5) {
             for j in (0..360).step_by(5) {
-                _theta = (i as f64) * 180.0/3.1415;
-                _phi = (j as f64) * 180.0/3.1415;
+                _theta = (i as f64) * RAD2DEG;
+                _phi = (j as f64) * RAD2DEG;
                 _x = _radius * (_phi.sin())*(_theta.cos());
                 _y = _radius * (_phi.cos())*(_theta.sin());
                 _z = _radius * (_phi.cos());
@@ -406,23 +397,12 @@ impl MyStrategy {
                 let mut feasiblePointsMaxSpeed = vec![0.0;2];
                 let mut feasiblePointsJumptTick = vec![0.0;2];
                 let mut feasiblePointsJumptSpeed = vec![0.0;2];
-                let mut new_game = self.game.clone();
-                let meCopy = self.me.clone();
-                for j in 0..120 {
-                    Simulation::tick_game(&meCopy,&mut new_game, &self.rules);
-                    ballPath[j] = new_game.ball.position();
-                     self.myDrawer.draw(new_game.ball.position3(),2.0,(0.0,0.0,1.0));
-                    for m in 0..new_game.robots.len() {
-                        self.myDrawer.draw(new_game.robots[m].position3(),1.0,(0.0,1.0,0.0));
-                    }
-                    ballH[j] = new_game.ball.height();
-                    let rulesCopy = self.rules.clone();
-                    let meCopy = self.me.clone();
+                for j in 0..self.ball_future.len() {
+                    ballPath[j] = self.ball_future[j].position();
+                    ballH[j] = self.ball_future[j].height();
                     let mut bPIF = Vec2::new(0.0,0.0);
                     let mut newTarget = *target;
-                    if kMode == kickMode::shotForGoal {
-                        bPIF  = ballPath[j]+ (ballPath[j] - newTarget).normalize()*(self.game.ball.radius + self.me.radius - 1.0);
-                    } else if kMode == kickMode::chanceCreation {
+                    if kMode == kickMode::shotForGoal || kMode == kickMode::chanceCreation{
                         bPIF  = ballPath[j]+ (ballPath[j] - newTarget).normalize()*(self.game.ball.radius + self.me.radius - 1.0);
                     } else {
                         bPIF  = ballPath[j]+ (robot_pos - ballPath[j]).normalize()*(self.game.ball.radius - 0.5);
@@ -514,7 +494,7 @@ impl MyStrategy {
                 let robot_theta_move = ((tochPoint - robot_pos).th() - (*target - tochPoint).th()).deg();
 
                 let mut tuchPFJ = tochPoint;
-                if (kMode == kickMode::clearDanger || true) {
+                /*if (kMode == kickMode::clearDanger || true) */{
                     tuchPFJ = bestBallPos;
                 }
                 let mut findAgg = false;
@@ -532,7 +512,7 @@ impl MyStrategy {
                 if findAgg == false && kMode !=kickMode::shotForGoal{
                     for jSpeed in ((bestJumpSpeed as i64)..(bestJumpSpeed as i64)+1).rev() {
                         if self.if_jump_can_touch_point(&copyMe.clone(),jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kMode),false) && waitForBall <= 0.05 {
-                            jump = (jSpeed as f64);
+                            jump = jSpeed as f64;
                             findAgg = true;
                             break;
                         } else {
@@ -546,7 +526,7 @@ impl MyStrategy {
 
                 if waitForBall > 0.1  {//}&& tochPoint.y >= 10.0{ // && tochPoint.y > robot_pos.y &&p robot_pos.y > 0.0{
                     let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
-                    if(ballpos.y >= 10.0) {
+                    if ballpos.y >= 10.0 {
                     tochPoint = Vec2::new(0.0,0.0);
                     }//tochPoint + (tochPoint - *target).normalize() * (maxSpeedDist/2.0);
                     //let kickSeg = Seg2::new(tochPoint + (tochPoint - *target).normalize()*(self.game.ball.height()/10.0 + 5.5),tochPoint + (tochPoint - *target).normalize()*15.0);
