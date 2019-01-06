@@ -108,9 +108,9 @@ impl MyStrategy {
 
     fn update_ball_path(&mut self) {
         self.ball_future = Simulation::get_ball_path(self.me.id, &self.game, &self.rules);
-        for i in 0..self.ball_future.len() {
-            self.myDrawer.draw(self.ball_future[i].position3(), self.rules.BALL_RADIUS, (0.5,0.5,0.5));
-        }
+        // for i in 0..self.ball_future.len() {
+        //     self.myDrawer.draw(self.ball_future[i].position3(), self.rules.BALL_RADIUS, (0.5,0.5,0.5));
+        // }
     }
 
     fn will_hit_the_ball(&self) -> bool{
@@ -460,13 +460,14 @@ impl MyStrategy {
                 let mut feasiblePointsJumptTick = vec![0.0;2];
                 let mut feasiblePointsJumptSpeed = vec![0.0;2];
                 for j in 0..self.ball_future.len() {
-                    ballPath[j] = self.ball_future[j].position();
+                    ballPath[j] = self.ball_future[j].position3();
                     ballH[j] = self.ball_future[j].height();
                     let mut bPIF = Vec2::new(0.0,0.0);
                     let mut newTarget = Vec3::new((*target).x,(*target).y,3.0);
                     let bestVec = (newTarget - ballPath[j]).normalize();
                     let rulesCopy = self.rules.clone();
-                    let (best_touch_point,ball_speed_after_touch) =  self.best_place_on_ball_for_kick(bestVec,&(new_game.ball),rulesCopy.ROBOT_MAX_JUMP_SPEED,&(rulesCopy));
+                    let virBall = self.ball_future[j];
+                    let (best_touch_point,ball_speed_after_touch) =  self.best_place_on_ball_for_kick(bestVec,&(virBall),rulesCopy.ROBOT_MAX_JUMP_SPEED,&(rulesCopy));
                     // self.myDrawer.draw(best_touch_point,1.0,(1.0,0.0,1.0));
                     // println!("best : X {} , Y {} , Z {}",best_touch_point.x,best_touch_point.y,best_touch_point.h);
                     bPIF = best_touch_point.toVec2();
