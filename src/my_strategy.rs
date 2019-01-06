@@ -521,7 +521,7 @@ impl MyStrategy {
                 let copyMe = self.me.clone();
                 for jSpeed in ((bestJumpSpeed as i64)..16).rev() {
                     //println!("jSpeed :{}" , jSpeed);
-                    if self.if_jump_can_touch_point(&copyMe,jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kickMode::shotForGoal),true) && waitForBall <= 0.05 {
+                    if self.if_jump_can_touch_point(&copyMe,jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kMode),true) && waitForBall <= 0.05 {
                         jump = (jSpeed as f64);
                         findAgg = true;
                         break;
@@ -531,7 +531,7 @@ impl MyStrategy {
                 }
                 if findAgg == false && kMode !=kickMode::shotForGoal{
                     for jSpeed in ((bestJumpSpeed as i64)..(bestJumpSpeed as i64)+1).rev() {
-                        if self.if_jump_can_touch_point(&copyMe.clone(),jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kickMode::shotForGoal),false) && waitForBall <= 0.05 {
+                        if self.if_jump_can_touch_point(&copyMe.clone(),jSpeed as f64,Vec3::new(tuchPFJ.x,tuchPFJ.y,bestHeight),Vec3::new(tochPoint.x,tochPoint.y,bestHeight),&(kMode),false) && waitForBall <= 0.05 {
                             jump = (jSpeed as f64);
                             findAgg = true;
                             break;
