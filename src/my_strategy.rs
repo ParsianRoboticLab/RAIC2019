@@ -1,5 +1,6 @@
 use crate::model::*;
 use crate::strategy::Strategy;
+use std::time::{Duration, Instant};
 
 const TWO_PI : f64 = 2.0 * std::f64::consts::PI;
 const EPSILON : f64 = 1.0e-6;
@@ -26,6 +27,8 @@ pub struct MyStrategy {
     height_c: usize,
     ball_future: [Ball ; 200],
     myDrawer : drawer,
+    start: Instant,
+    tick: i32,
 }
 
 impl Default for MyStrategy {
@@ -38,14 +41,22 @@ impl Default for MyStrategy {
             height_c: 0,
             ball_future: [Ball::default(); 200],
             myDrawer : drawer::default(),
+            start: Instant::now(),
+            tick : 0
         }
     }
 }
 
+
 impl Strategy for MyStrategy {
 
     fn act(&mut self, me: &Robot, _rules: &Rules, _game: &Game, _action: &mut Action) {
+        let now = Instant::now();
+        self.tick += 1;
         if !me.touch {
+            println!("LOOP TIME: {:?}", now.elapsed());
+            println!("TIME PASS: {:?}", self.start.elapsed());
+            println!("TICK LEFT: {:?}", self.rules.max_tick_count - self.tick);
             return
         }
         // Choose Main Strategy (Coach) 1. DEF, 2. NORMAL, 3. OFF
@@ -65,7 +76,9 @@ impl Strategy for MyStrategy {
 
 
         *_action = self.action;
-
+        println!("LOOP TIME: {:?}", now.elapsed());
+        println!("TIME PASS: {:?}", self.start.elapsed());
+        println!("TICK LEFT: {:?}", self.rules.max_tick_count - self.tick);
     }
 
     fn custom_rendering(&mut self) -> String {
