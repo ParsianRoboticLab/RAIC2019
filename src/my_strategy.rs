@@ -67,7 +67,7 @@ impl Strategy for MyStrategy {
         self.update_ball_path();
         // Choose My Role 1. GK, 2. DEF, 3. OFF 4. SUP
         // Execute My Role
-        let opp_goal = Vec2::new(0.0, self.rules.arena.depth/2.0 + 20.0);
+        let opp_goal = Vec2::new(0.0, self.rules.arena.depth/2.0 + 2.0);
 
         if me.id%2 == 1 {
             self.gk();
@@ -272,40 +272,256 @@ impl MyStrategy {
         return timeR;
         // 12.5
     }
+    fn travel_time_alt(&mut self, _mePos : Vec2, _meVel: Vec2,target: &Vec2) -> f64 {
+        let robot_pos = _mePos;
+        let robot_vel = _meVel;
+        let effectiveSpeed = robot_vel.inner_product(&((*target - robot_pos).normalize()));
+        let mut timeR = 0.0;
+        if effectiveSpeed >= self.rules.ROBOT_MAX_GROUND_SPEED{
+            timeR = (*target).dist(robot_pos) / effectiveSpeed;
+        } else {
+            let timeToVmax = (self.rules.ROBOT_MAX_GROUND_SPEED - effectiveSpeed) / self.rules.ROBOT_ACCELERATION;
+            let distToVmax = 0.5 * self.rules.ROBOT_ACCELERATION * timeToVmax*timeToVmax + effectiveSpeed*timeToVmax;
+            if distToVmax <= target.dist(robot_pos) {
+                timeR = timeToVmax + ((*target).dist(robot_pos) - distToVmax) / self.rules.ROBOT_MAX_GROUND_SPEED;
+            } else {
+                timeR = (-1.0 * effectiveSpeed + (effectiveSpeed * effectiveSpeed + 2.0 * self.rules.ROBOT_ACCELERATION * (*target).dist(robot_pos)).sqrt()) / self.rules.ROBOT_ACCELERATION;
+            }
+        }
+        return timeR;
+        // 12.5
+    }
 
     fn travel_time_it(&mut self, target: &Vec2) -> f64 {
         let mut velocity = self.me.velocity();
         let mut position = self.me.position();
         let mut result = 10000.0;
         let perS = 5.0;
-        for i in 0..BALL_PREDICTION_TICKS*5 {
+        let step_time = (1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS));
+        for i in 0..BALL_PREDICTION_TICKS*20 {
             let idealPath = (*target - position).th().deg()*DEG2RAD;
-            position = position + velocity*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS));
-            if velocity.x < idealPath.cos()*self.rules.ROBOT_MAX_GROUND_SPEED - self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS)){
-                velocity.x = velocity.x + self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS));
-            } else if velocity.x > idealPath.cos()*self.rules.ROBOT_MAX_GROUND_SPEED + self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS)){
-                velocity.x = velocity.x - self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS));
+            if position.dist(*target) <= 0.05{
+                result = (i as f64) * step_time;
+                break;
             }
-            if velocity.y < idealPath.sin()*self.rules.ROBOT_MAX_GROUND_SPEED - self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS)){
-                velocity.y = velocity.y + self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS));
-            } else if velocity.y > idealPath.sin()*self.rules.ROBOT_MAX_GROUND_SPEED + self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS)){
-                velocity.y = velocity.y - self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS));
+            if ((velocity.x - idealPath.cos()*self.rules.ROBOT_MAX_GROUND_SPEED) < self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS))) && ((velocity.y - idealPath.sin()*self.rules.ROBOT_MAX_GROUND_SPEED) < self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS))) {
+                result = (i as f64) + self.travel_time_alt(position,velocity,target);
+                break;
+            }
+
+            position = position + velocity * step_time;
+            if velocity.x < idealPath.cos()*self.rules.ROBOT_MAX_GROUND_SPEED - self.rules.ROBOT_ACCELERATION*step_time {
+                velocity.x = velocity.x + self.rules.ROBOT_ACCELERATION*step_time;
+            } else if velocity.x > idealPath.cos()*self.rules.ROBOT_MAX_GROUND_SPEED + self.rules.ROBOT_ACCELERATION*step_time{
+                velocity.x = velocity.x - self.rules.ROBOT_ACCELERATION*step_time;
+            }
+            if velocity.y < idealPath.sin()*self.rules.ROBOT_MAX_GROUND_SPEED - self.rules.ROBOT_ACCELERATION*step_time{
+                velocity.y = velocity.y + self.rules.ROBOT_ACCELERATION*step_time;
+            } else if velocity.y > idealPath.sin()*self.rules.ROBOT_MAX_GROUND_SPEED + self.rules.ROBOT_ACCELERATION*step_time{
+                velocity.y = velocity.y - self.rules.ROBOT_ACCELERATION*step_time;
             }
             if velocity.len() > self.rules.ROBOT_MAX_GROUND_SPEED {
                 velocity = velocity.normalize() *self.rules.ROBOT_MAX_GROUND_SPEED;
             }
-            if position.dist(*target) <= 0.05 {
-                result = (i as f64) / ((self.rules.TICKS_PER_SECOND as f64)*perS);
-                break;
-            }
         }
         let oldTime = self.travel_time(target);
-        if result - oldTime >= 0.3 {
+        if result - oldTime >= 1.0 {
             result = oldTime;
         }
         return result;
 
     }
+
+    fn god_step(&mut self,_position : Vec3 , _velocity : Vec3 , target : Vec2 , _j_speed : f64 ) -> (Vec3,Vec3) {
+        let mut velocity = _velocity;
+        let mut position = _position;
+        let step_time = (1.0/ ((self.rules.TICKS_PER_SECOND as f64)));
+        let idealPath = (target - position.toVec2()).th().deg()*DEG2RAD;
+        let delta_time = step_time;
+        position = position + velocity*delta_time;
+        position.h = (position.h - (self.rules.GRAVITY * delta_time * delta_time / 2.0));
+        velocity.h = velocity.h - (self.rules.GRAVITY * delta_time);
+        if position.h < self.me.radius {
+            position.h = self.me.radius;
+            velocity.h = 0.0;
+        }
+        if position.h <= self.me.radius {
+            position = position + velocity * step_time;
+            if velocity.x < idealPath.cos()*self.rules.ROBOT_MAX_GROUND_SPEED - self.rules.ROBOT_ACCELERATION*step_time {
+                velocity.x = velocity.x + self.rules.ROBOT_ACCELERATION*step_time;
+            } else if velocity.x > idealPath.cos()*self.rules.ROBOT_MAX_GROUND_SPEED + self.rules.ROBOT_ACCELERATION*step_time{
+                velocity.x = velocity.x - self.rules.ROBOT_ACCELERATION*step_time;
+            }
+            if velocity.y < idealPath.sin()*self.rules.ROBOT_MAX_GROUND_SPEED - self.rules.ROBOT_ACCELERATION*step_time{
+                velocity.y = velocity.y + self.rules.ROBOT_ACCELERATION*step_time;
+            } else if velocity.y > idealPath.sin()*self.rules.ROBOT_MAX_GROUND_SPEED + self.rules.ROBOT_ACCELERATION*step_time{
+                velocity.y = velocity.y - self.rules.ROBOT_ACCELERATION*step_time;
+            }
+            if velocity.toVec2().len() > self.rules.ROBOT_MAX_GROUND_SPEED {
+                velocity = Vec3::new((velocity.toVec2().normalize() *self.rules.ROBOT_MAX_GROUND_SPEED).x,(velocity.toVec2().normalize() *self.rules.ROBOT_MAX_GROUND_SPEED).y,velocity.h);
+            }
+            if _j_speed > 0.0 {
+                velocity.h = _j_speed;
+            }
+        }
+        return (position,velocity);
+
+    }
+    fn god_step_GP(&mut self,_position : Vec3 , _velocity : Vec3 , _target : Vec2 , _j_speed : f64 ) -> (Vec3,Vec3) {
+        let mut velocity = _velocity;
+        let mut position = _position;
+
+        let mut target = _target;
+        if (target).y > self.rules.arena.depth / 2.0 {
+            (target).y = self.rules.arena.depth / 2.0;
+        }
+        if target.y < self.rules.arena.depth / -2.0 {
+            target.y = self.rules.arena.depth / -2.0;
+        }
+        if target.x > self.rules.arena.width / 2.0 {
+            target.x = self.rules.arena.width / 2.0;
+        }
+        if target.x < self.rules.arena.width / -2.0 {
+            target.x = self.rules.arena.width / -2.0;
+        }
+
+        let dist = _position.toVec2().dist(target);
+        let _ac_speed = dist * 3.0;
+        let idealPath = (target - position.toVec2()).th().deg()*DEG2RAD;
+        let delta_time = (1.0/ ((self.rules.TICKS_PER_SECOND as f64)));
+        position = position + velocity*delta_time;
+        position.h = (position.h - (self.rules.GRAVITY * delta_time * delta_time / 2.0));
+        velocity.h = velocity.h - (self.rules.GRAVITY * delta_time);
+        if position.h < self.me.radius {
+            position.h = self.me.radius;
+            velocity.h = 0.0;
+        }
+        if position.h <= self.me.radius {
+            if velocity.x < idealPath.cos()*_ac_speed - self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64))){
+                velocity.x = velocity.x + self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)));
+            } else if velocity.x > idealPath.cos()*_ac_speed + self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64))){
+                velocity.x = velocity.x - self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)));
+            }
+            if velocity.y < idealPath.sin()*_ac_speed - self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64))){
+                velocity.y = velocity.y + self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)));
+            } else if velocity.y > idealPath.sin()*_ac_speed + self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64))){
+                velocity.y = velocity.y - self.rules.ROBOT_ACCELERATION*(1.0/ ((self.rules.TICKS_PER_SECOND as f64)));
+            }
+            if velocity.toVec2().len() > self.rules.ROBOT_MAX_GROUND_SPEED {
+                velocity = Vec3::new((velocity.normalize() *self.rules.ROBOT_MAX_GROUND_SPEED).x,(velocity.normalize() *self.rules.ROBOT_MAX_GROUND_SPEED).y,velocity.h);
+            }
+            if _j_speed > 0.0 {
+                velocity.h = _j_speed;
+            }
+        }
+        return (position,velocity);
+
+    }
+    fn god_simulation (&mut self , _ball : Ball,_touch_point : Vec3,_target : Vec3, _time_availabe : f64, _kMode : kickMode) -> (bool,Vec3,f64,f64,f64,f64){
+        let mut position = self.me.position3();
+        let mut vel = self.me.velocity3();
+        let ballPos = _ball.position3();
+        let ballVel = _ball.velocity3();
+        let tochPoint = _touch_point.toVec2();
+        let mut result = (false,Vec3::new(0.0,0.0,0.0),0.0,0.0,0.0,0.0);
+        let target = _target.toVec2();
+        let mut found_best_sol = false;
+        let mut _vir_robot_target = Vec2::new(0.0,0.0);
+        let mut jump_tick_time = 0.0;
+        let mut best_jump_speed = 0.0;
+        let mut best_speed = 0.0;
+        let mut t_change_dir = 0.0;
+        let mut dist_before_jump = 0.0;
+        let mut jump_time_output = 10000.0;
+        _vir_robot_target = tochPoint;
+        // self.myDrawer.draw(Vec3::new(0.0,0.0,0.0),2.0,(1.0,1.0,0.0));
+        for i in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize) {
+            // self.myDrawer.draw(position,0.5,(1.0,0.0,0.0));
+            let _time = (i as f64) / (self.rules.TICKS_PER_SECOND as f64);
+            let _time_to_reach = self.travel_time_alt(position.toVec2(), vel.toVec2(), &(tochPoint));
+            if _time_to_reach + _time + t_change_dir < _time_availabe + 0.1 {
+                let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
+                let kickSeg = Seg2::new(tochPoint + (tochPoint - target).normalize()*(maxSpeedDist),tochPoint + (tochPoint - target).normalize()*15.0);
+                let altPoint = kickSeg.nearest_point(&(position.toVec2()));
+                let stepRes = self.god_step_GP(position, vel, altPoint, 0.0);
+                position = stepRes.0;
+                vel = stepRes.1;
+                t_change_dir = ((altPoint - position.toVec2()).normalize() - (target - altPoint).normalize()).len()*0.15;
+            } else {
+                for jSpeedFor in (1..(self.rules.ROBOT_MAX_JUMP_SPEED as i64) + 1).rev() {
+                    if found_best_sol == true {
+                        break;
+                    }
+                    for xSpeedFor in (0..(self.rules.ROBOT_MAX_GROUND_SPEED as i64) + 1).rev() {
+                        let j_speed = jSpeedFor as f64;
+                        let mut x_speed = xSpeedFor as f64;
+                        if x_speed == 0.0 {
+                            x_speed = 0.000001;
+                        }
+                        if ((j_speed*j_speed)/(x_speed*x_speed) - 2.0*((self.rules.GRAVITY*(_touch_point.h - self.me.radius))/(x_speed*x_speed))) < 0.0 {
+                            continue;
+                        }
+                        let temp_distBeforJumpDown = ((j_speed/x_speed) + ((j_speed*j_speed)/(x_speed*x_speed) - 2.0*((self.rules.GRAVITY*(_touch_point.h - self.me.radius))/(x_speed*x_speed))).sqrt()) / (self.rules.GRAVITY/(x_speed*x_speed));
+                        let jumptimeDown = temp_distBeforJumpDown/x_speed;
+                        ///// jump with maximum jump with maximum speed
+                        let effectiveSpeed = vel.toVec2().inner_product(&(tochPoint - position.toVec2()).normalize());
+                        let distNeededForThisSpeed = (x_speed*x_speed - effectiveSpeed*effectiveSpeed)/(2.0*self.rules.ROBOT_ACCELERATION);
+
+                        let temp_distBeforJumpUP = ((j_speed/x_speed) - ((j_speed*j_speed)/(x_speed*x_speed) - 2.0*((self.rules.GRAVITY*(_touch_point.h - self.me.radius))/(x_speed*x_speed))).sqrt()) / (self.rules.GRAVITY/(x_speed*x_speed));
+                        let jumptimeUP = temp_distBeforJumpUP/x_speed;
+                        let mut canJump = 0;
+                        let mut temp_distBeforJump = 10000.0;
+                        let mut jump_time = 10000000.0;
+
+
+                        if temp_distBeforJumpDown + distNeededForThisSpeed <= position.toVec2().dist(tochPoint){
+                            temp_distBeforJump = temp_distBeforJumpDown;
+                            jump_time= jumptimeDown;
+                        }
+                        else if temp_distBeforJumpUP + distNeededForThisSpeed <= position.toVec2().dist(tochPoint) {
+                            temp_distBeforJump = temp_distBeforJumpUP;
+                            jump_time= jumptimeUP;
+                        }
+                        if temp_distBeforJump + distNeededForThisSpeed <= position.toVec2().dist(tochPoint){
+                            _vir_robot_target = tochPoint;
+                            jump_tick_time = _time_availabe - jump_time;
+                            jump_time_output = jump_time;
+                            best_jump_speed = j_speed;
+                            found_best_sol = true;
+                            best_speed = x_speed;
+                            dist_before_jump = temp_distBeforJump;
+                            break;
+                        }
+                    }
+
+                }
+                let mut _j_for_kick = 0.0;
+                if _time >= jump_tick_time  {
+                    _j_for_kick = best_jump_speed;
+                }
+                // println!("best JS {}" , _j_for_kick);
+                let stepRes = self.god_step(position, vel, _vir_robot_target, _j_for_kick);
+                position = stepRes.0;
+                vel = stepRes.1;
+            }
+            let mut virtualBot = self.me.clone();
+            virtualBot.set_position(&position);
+            virtualBot.set_velocity(&vel);
+            if position.dist(_ball.position3()) < self.me.radius + self.game.ball.radius {
+                result.5 = jump_time_output;
+                result.4 = dist_before_jump;
+                result.3 = best_speed;
+                result.2 = best_jump_speed;
+                result.1 = Simulation::simpleRobotBallColideStep(&virtualBot,&_ball,best_jump_speed,&self.rules);
+                result.0 = true;
+                break;
+            }
+
+        }
+
+        return result;
+    }
+
     fn ballPosInTheFuture (&mut self, t : f64) -> Vec2 {
         let ballPos = self.game.ball.position();
         ballPos + self.game.ball.velocity() * t
@@ -357,7 +573,7 @@ impl MyStrategy {
         let mut _theta = 0.0;
         let mut _phi:f64 = 0.0;
         let mut _impulseVec = Vec3::new(0.0,0.0,0.0);
-        let _radius = _ball.radius + self.me.radius - 1.2;
+        let _radius = _ball.radius + self.me.radius ;
         let mut _outPut = Vec3::new(0.0,0.0,0.0);
         let mut bestAnswer = Vec3::new(0.0,0.0,0.0);
         let mut bestHeight = 0.0;
@@ -368,11 +584,18 @@ impl MyStrategy {
         let mut robot_max_vel = 0.0;
 
         let mut ball_vel_after_touch = 0.0;
+        let kick_path_theta = (finalVel.toVec2().th().deg() as i64);
+        let angForBestKick = (finalVel.h / finalVel.toVec2().len()).atan() + 3.1415/2.0;
+        // self.myDrawer.drawLine(_ball.position3() + finalVel*10.0,_ball.position3() , (1.0,1.0,1.0));
+        // self.myDrawer.drawText(format!("ang : {} ",angForBestKick*RAD2DEG));
 
-        for i in (0..360).step_by(1) {
+        if bestAnswer.h > 6.75 {
+            bestAnswer.h = 6.75;
+        }
+        for i in ((90+kick_path_theta)..(270+kick_path_theta)).step_by(5) {
 
             _theta = (i as f64) * 180.0/3.1415;
-            _phi = 90.0 * 180.0/3.1415;
+            _phi = -angForBestKick;// 90.0 * 180.0/3.1415;
             _x = _radius * (_phi.sin())*(_theta.cos()) + _ball.position3().x;
             _y = _radius * (_phi.sin())*(_theta.sin()) + _ball.position3().y;
             _z = _radius * (_phi.cos()) + _ball.position3().h;
@@ -487,7 +710,7 @@ impl MyStrategy {
             Self::set_robot_vel(idealPath*DEG2RAD , 100.0 ,jump, &mut self.action);
         } else {
             ////// New prediction
-            if movementDir.abs() < 110.0 {
+            if movementDir.abs() < 110.0 || kMode == kickMode::shotForGoal{
                 let mut ballPath = [Vec3::new(0.0,0.0,0.0) ; 600];
 
                 let mut ballH = [0.0 ; 600];
@@ -505,13 +728,11 @@ impl MyStrategy {
                     ballPath[j] = self.ball_future[j].position3();
                     ballH[j] = self.ball_future[j].height() ;
                     let mut bPIF = Vec2::new(0.0,0.0);
-                    let mut newTarget = Vec3::new((*target).x,(*target).y,3.0);
-                    if kMode == kickMode::shotForGoal && ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 {
-                        newTarget.x = ballPath[j].x;
-                    }
+                    let mut newTarget = Vec3::new((*target).x,(*target).y ,7.0);
                     let bestVec = (newTarget - ballPath[j]).normalize();
                     let rulesCopy = self.rules.clone();
                     let virBall = self.ball_future[j];
+                    // self.myDrawer.draw(newTarget,0.5,(1.0,1.0,0.5));
                     let (best_touch_point,ball_speed_after_touch) =  self.best_place_on_ball_for_kick(bestVec,&(virBall),rulesCopy.ROBOT_MAX_JUMP_SPEED,&(rulesCopy));
                     bPIF = best_touch_point.toVec2();
 
@@ -530,8 +751,11 @@ impl MyStrategy {
                     }
 
 
-                    if robottravel_time <= (j as f64)/(self.rules.TICKS_PER_SECOND as f64) && (ballH[j] < hHeight) {
-                        // self.myDrawer.draw(best_touch_point,0.5,(1.0,1.0,1.0));
+                    if robottravel_time  < (j as f64)/(self.rules.TICKS_PER_SECOND as f64) && (ballH[j] < hHeight) {
+                        let BC = self.ball_future[j].clone();
+                        // self.myDrawer.draw(BC.position3(),0.5,(1.0,1.0,1.0));
+                        // self.myDrawer.draw(best_touch_point,0.5,(0.0,1.0,1.0));
+
                         let mut max_speed = 0.0;
                         let time_needed_to_max_speed = (self.rules.ROBOT_MAX_GROUND_SPEED - self.me.velocity().len())/self.rules.ROBOT_ACCELERATION;
                         let mut exteraTime = 0.0;
@@ -541,7 +765,9 @@ impl MyStrategy {
                         }
                         let mut distBeforJump = 0.0;
                         let mut found_best_sol = false;
-                        if (ballH[j] <= 2.5002) || bPIF.dist(robot_pos) <= 0.3 {
+                        //////// some tofe khub
+
+                        if ((ballH[j] <= 2.5002) || bPIF.dist(robot_pos) <= 0.3) && bPIF.y >= robot_pos.y {
                             feasiblePointsMaxSpeed.push(0.0);
                             feasiblePoints.push(bPIF);
                             let mut _point = 4000.0 / (j as f64) + ball_speed_after_touch;
@@ -567,69 +793,28 @@ impl MyStrategy {
                             }
                             found_best_sol = true;
                         } else {
-                            for jSpeedFor in (1..(self.rules.ROBOT_MAX_JUMP_SPEED as i64) + 1).rev() {
-                                for xSpeedFor in (0..(max_speed as i64) + 1).rev() {
-                                    let j_speed = jSpeedFor as f64;
-                                    let mut x_speed = xSpeedFor as f64;
-                                    if x_speed == 0.0 {
-                                        x_speed = 0.000001;
+
+                            let actual_time = (j as f64)/ (self.rules.TICKS_PER_SECOND as f64);
+                            let ballCopy = self.ball_future[j].clone();
+                            let res = self.god_simulation(ballCopy, best_touch_point,Vec3::new((*target).x,(*target).y,ballH[j]),actual_time, kickMode::shotForGoal);
+                            if res.0 == true  && res.1.toVec2().dist(*target) <= ballCopy.position().dist(*target){
+                                feasiblePointsMaxSpeed.push(0.0);
+                                feasiblePoints.push(bPIF);
+                                let mut _point = 6000.0 / (j as f64);
+                                if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 && kMode!=kickMode::clearDanger && ballPath[j].y >= 10.0 {
+                                    _point +=  ballH[j];
+                                    if ballPath[j].y >= 0.0 {
+                                        _point = _point + 25.0 + ballPath[j].y ;
                                     }
-                                    if ((j_speed*j_speed)/(x_speed*x_speed) - 2.0*((self.rules.GRAVITY*(ballH[j] - self.me.radius))/(x_speed*x_speed))) < 0.0 {
-                                        continue;
-                                    }
-                                    let temp_distBeforJumpDown = ((j_speed/x_speed) + ((j_speed*j_speed)/(x_speed*x_speed) - 2.0*((self.rules.GRAVITY*(ballH[j] - self.me.radius))/(x_speed*x_speed))).sqrt()) / (self.rules.GRAVITY/(x_speed*x_speed));
-                                    let jumptimeDown = temp_distBeforJumpDown/x_speed;
-                                    ///// jump with maximum jump with maximum speed
-                                    let effectiveSpeed = self.me.velocity().inner_product(&(bPIF - self.me.position()).normalize());
-                                    let distNeededForThisSpeed = (x_speed*x_speed - effectiveSpeed*effectiveSpeed)/(2.0*self.rules.ROBOT_ACCELERATION);
-
-                                    let temp_distBeforJumpUP = ((j_speed/x_speed) - ((j_speed*j_speed)/(x_speed*x_speed) - 2.0*((self.rules.GRAVITY*(ballH[j] - self.me.radius))/(x_speed*x_speed))).sqrt()) / (self.rules.GRAVITY/(x_speed*x_speed));
-                                    let jumptimeUP = temp_distBeforJumpUP/x_speed;
-                                    ///// jump with maximum jump with maximum speed
-
-                                    // println!("best distneed {}, distBeforJump {}, sum {}",distNeededForThisSpeed,temp_distBeforJump,temp_distBeforJump + distNeededForThisSpeed);
-
-                                    // if distNeededForThisSpeed < 0.0 {
-                                    //     continue;
-                                    // }
-                                    let mut canJump = 0;
-                                    let mut temp_distBeforJump = 10000.0;
-                                    let mut jump_time = 10000000.0;
-                                    if temp_distBeforJumpDown + distNeededForThisSpeed <= robot_pos.dist(ballPath[j].toVec2()){
-                                        temp_distBeforJump = temp_distBeforJumpDown;
-                                        jump_time= jumptimeDown;
-                                    }
-                                    else if (temp_distBeforJumpUP + distNeededForThisSpeed <= robot_pos.dist(ballPath[j].toVec2())) {
-                                        temp_distBeforJump = temp_distBeforJumpUP;
-                                        jump_time= jumptimeUP;
-                                    }
-
-                                    if temp_distBeforJump + distNeededForThisSpeed <= robot_pos.dist(ballPath[j].toVec2()){
-                                        feasiblePointsMaxSpeed.push(0.0);
-                                        feasiblePoints.push(bPIF);
-                                        let mut _point = 6000.0 / (j as f64) + ball_speed_after_touch;
-                                        if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 && kMode!=kickMode::clearDanger && ballPath[j].y >= 0.0 {
-                                            _point +=  ballH[j];
-                                            if ballPath[j].y >= 0.0 {
-                                                _point = _point + 25.0 + ballPath[j].y ;
-                                            }
-                                        }
-
-                                        feasiblePointsScore.push(_point);
-                                        feasiblePointsHeight.push (ballH[j]);
-                                        //println!("tick needed: {} , time for walk {}, time for jump {}", j, self.travel_time(&(bPIF - (robot_pos - bPIF).normalize()*temp_distBeforJump)) , (temp_distBeforJump/x_speed));
-                                        feasiblePointsTickDiff.push(((j as f64)/ (self.rules.TICKS_PER_SECOND as f64)) - self.travel_time_it(&(bPIF - (robot_pos - bPIF).normalize()*temp_distBeforJump)) + (temp_distBeforJump/x_speed));
-                                        feasiblePointsTickNum.push(j as f64);
-                                        feasiblePointsJumptSpeed.push(j_speed);
-                                        feasiblePointsTickBJ.push((j as f64) - jump_time * (self.rules.TICKS_PER_SECOND as f64));
-                                        found_best_sol = true;
-                                        break;
-                                    }
-
                                 }
-                                if found_best_sol == true {
-                                    break;
-                                }
+
+                                feasiblePointsScore.push(_point);
+                                feasiblePointsHeight.push (best_touch_point.h);
+                                feasiblePointsTickDiff.push(((j as f64)/ (self.rules.TICKS_PER_SECOND as f64)) - self.travel_time_it(&(bPIF - (robot_pos - bPIF).normalize()*res.4)) + (res.4/res.3));
+                                feasiblePointsTickNum.push(j as f64);
+                                feasiblePointsJumptSpeed.push(res.2);
+                                feasiblePointsTickBJ.push((j as f64) - res.5 * (self.rules.TICKS_PER_SECOND as f64));
+                                found_best_sol = true;
                             }
                         }
 
@@ -654,7 +839,9 @@ impl MyStrategy {
                         best_tick_beforeJump = feasiblePointsTickBJ[i];
                     }
                 }
+                // self.myDrawer.draw(Vec3::new(tochPoint.x,tochPoint.y,bestHeight),1.0,(0.0,1.0,1.0));
 
+                // self.myDrawer.drawText(format!("ittt : {}",best_tick_beforeJump));
                 let bestBallPos = ballPath[bestTick].toVec2();
                 // self.myDrawer.draw(Vec3::new(bestBallPos.x,bestBallPos.y,bestHeight),2.0,(1.0,0.0,0.0));
                 // self.myDrawer.draw(Vec3::new(tochPoint.x,tochPoint.y,bestHeight),1.0,(0.0,1.0,0.0));
@@ -717,10 +904,14 @@ impl MyStrategy {
                 idealPath = (idealPath + shift);
             }
             ////println!("jump {},, result {}, nesbat {}",jump,self.me.velocity3().h, self.me.velocity3().h / jump);
-            if waitForBall >= 0.1{
-                // let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
-                // let kickSeg = Seg2::new(tochPoint + (tochPoint - *target).normalize()*(self.game.ball.height()/10.0 + 5.5),tochPoint + (tochPoint - *target).normalize()*15.0);
-                // tochPoint = kickSeg.nearest_point(&robot_pos);
+
+            let mut t_change_dir = 0.0;
+
+            if waitForBall >= 0.1 + t_change_dir{
+                let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
+                let kickSeg = Seg2::new(tochPoint + (tochPoint - *target).normalize()*(maxSpeedDist),tochPoint + (tochPoint - *target).normalize()*15.0);
+                tochPoint = kickSeg.nearest_point(&robot_pos);
+                t_change_dir = (tochPoint - robot_pos.normalize() - (*target - tochPoint).normalize()).len()*0.15;
                 if kMode!= kickMode::clearDanger {
                     Self::gtp(&tochPoint, &self.me, &self.rules, &mut self.action);
                 } else {
@@ -740,7 +931,6 @@ impl MyStrategy {
     }
     fn pm(&mut self, target: &Vec2) {
         let mut newTarget = *target;
-        newTarget.y+=20.0;
         if self.game.ball.position().x > self.rules.arena.width / 2.0 - 1.0 {
             newTarget.x = self.rules.arena.width / 2.0 - 1.0;
         }
@@ -775,7 +965,7 @@ impl MyStrategy {
         let dist = me.position().dist(target);
         let diff = target - me.position();
         let angle = (diff.y).atan2(diff.x);
-        Self::set_robot_vel(angle, 5.0 * dist , 0.0, action);
+        Self::set_robot_vel(angle, 3.0 * dist , 0.0, action);
 
 
     }
