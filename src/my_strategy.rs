@@ -54,12 +54,12 @@ impl Strategy for MyStrategy {
     fn act(&mut self, me: &Robot, _rules: &Rules, _game: &Game, _action: &mut Action) {
         let now = Instant::now();
         self.tick += 1;
-        if !me.touch {
-            println!("LOOP TIME: {:?}", now.elapsed());
-            println!("TIME PASS: {:?}", self.start.elapsed());
-            println!("TICK LEFT: {:?}", self.rules.max_tick_count - self.tick);
-            return
-        }
+        // if !me.touch {
+        //     println!("LOOP TIME: {:?}", now.elapsed());
+        //     println!("TIME PASS: {:?}", self.start.elapsed());
+        //     println!("TICK LEFT: {:?}", self.rules.max_tick_count - self.tick);
+        //     return
+        // }
         // Choose Main Strategy (Coach) 1. DEF, 2. NORMAL, 3. OFF
         self.me = me.clone();
         self.rules = _rules.clone();
@@ -558,7 +558,7 @@ impl MyStrategy {
                             feasiblePointsTickDiff.push(((j as f64)/ (self.rules.TICKS_PER_SECOND as f64)) - robottravel_time);
                             feasiblePointsTickNum.push(j as f64);
 
-                            if self.me.position3().dist(self.game.ball.position3() ) <= self.me.radius + self.game.ball.radius + 2.5 {
+                            if self.me.position3().dist(self.game.ball.position3() ) <= self.me.radius + self.game.ball.radius + 3.0 {
                                 feasiblePointsTickBJ.push(0.0);//(j as f64) - jump_time * (self.rules.TICKS_PER_SECOND as f64));
                                 feasiblePointsJumptSpeed.push(self.rules.ROBOT_MAX_JUMP_SPEED);
                             } else {
@@ -728,6 +728,12 @@ impl MyStrategy {
                     Self::gtp(&(Vec2::new(0.0,y_goal)), &self.me, &self.rules, &mut self.action);
                 }
             } else {
+                if !self.me.touch {
+                    jump = 0.0;
+                }
+                if self.me.position3().dist(self.game.ball.position3()) <= 3.5 && !self.me.touch{
+                    jump = 15.0;
+                }
                 Self::set_robot_vel(idealPath*DEG2RAD ,100.0,jump, &mut self.action);
             }
         }
