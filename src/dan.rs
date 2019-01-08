@@ -80,7 +80,7 @@ impl DAN {
         - _rules.arena.goal_top_radius,
          _rules.arena.goal_height - _rules.arena.goal_top_radius);
         if point.x >= (_rules.arena.goal_width / 2.0) + _rules.arena.goal_side_radius
-        || point.y >= _rules.arena.goal_height + _rules.arena.goal_side_radius
+        || point.h >= _rules.arena.goal_height + _rules.arena.goal_side_radius
         || (v.x > 0.0 && v.y > 0.0 && v.len() >= _rules.arena.goal_top_radius
                                                 + _rules.arena.goal_side_radius) {
             dan = Self::min_dan(dan , Self::dan_to_plane(point, &Vec3::new(0.0, 0.0, _rules.arena.depth / 2.0), &Vec3::new(0.0, 0.0, -1.0)));
