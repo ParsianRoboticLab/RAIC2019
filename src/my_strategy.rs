@@ -5,7 +5,9 @@ use std::time::{Duration, Instant};
 const TWO_PI : f64 = 2.0 * std::f64::consts::PI;
 const EPSILON : f64 = 1.0e-6;
 const BALL_PREDICTION_TICKS : usize = 160;
-const CAN_DRAW : bool = false;
+const CAN_DRAW : bool = true;
+const global_step_time : f64 = 1.0/ ((60 as f64));
+
 include!("pid.rs");
 include!("vec2.rs");
 include!("def.rs");
@@ -467,6 +469,7 @@ impl MyStrategy {
         let mut jump_time_output = 10000.0;
         _vir_robot_target = tochPoint;
         let mut wasteTime = 1000.0;
+        let mut canJump = 1000.0;
         let mut selectedPath = [Vec3::new(0.0,0.0,0.0) ;600];
         let _time_to_reach_for_wait = self.travel_time_alt(position.toVec2(), vel.toVec2(), &(tochPoint));
         if (_time_to_reach_for_wait >= _time_availabe - step_time) {
@@ -517,14 +520,15 @@ impl MyStrategy {
                         let mut jump_time = 10000000.0;
 
 
-                        if temp_distBeforJumpDown + distNeededForThisSpeed <= position.toVec2().dist(tochPoint){
-                            temp_distBeforJump = temp_distBeforJumpDown;
-                            jump_time= jumptimeDown;
-                        }
-                        else if temp_distBeforJumpUP + distNeededForThisSpeed <= position.toVec2().dist(tochPoint) {
+                        if temp_distBeforJumpUP + distNeededForThisSpeed <= position.toVec2().dist(tochPoint) {
                             temp_distBeforJump = temp_distBeforJumpUP;
                             jump_time= jumptimeUP;
                         }
+                        else if temp_distBeforJumpDown + distNeededForThisSpeed <= position.toVec2().dist(tochPoint){
+                            temp_distBeforJump = temp_distBeforJumpDown;
+                            jump_time= jumptimeDown;
+                        }
+
                         if temp_distBeforJump + distNeededForThisSpeed <= position.toVec2().dist(tochPoint){
                             _vir_robot_target = tochPoint;
                             jump_tick_time = _time_availabe - jump_time;
@@ -542,6 +546,9 @@ impl MyStrategy {
                 if _time >= jump_tick_time  {
                     _j_for_kick = best_jump_speed;
                 }
+                if jump_tick_time < step_time {
+                    canJump = 0.0;
+                }
                 // println!("best JS {}" , _j_for_kick);
                 let stepRes = self.god_step(position, vel, _vir_robot_target, _j_for_kick);
                 position = stepRes.0;
@@ -556,7 +563,7 @@ impl MyStrategy {
                     self.myDrawer.draw(selectedPath[j],0.5,(1.0,0.0,0.0));
                 }
 
-                result.5 = jump_time_output;
+                result.5 = canJump;
                 result.4 = wasteTime;
                 result.3 = best_speed;
                 result.2 = best_jump_speed;
@@ -629,14 +636,14 @@ impl MyStrategy {
         bestAnswer.h = _ball.position3().h - finalVel.h;
 
 
-        if (_k_mode == kickMode::clearDanger) {
-            bestAnswer.h = _ball.position3().h - self.me.radius;
+        if (true || _k_mode == kickMode::clearDanger) {
+            bestAnswer.h = _ball.position3().h - self.me.radius ;
         }
         if bestAnswer.h < self.me.radius {
             bestAnswer.h = self.me.radius;
         }
-        if bestAnswer.h > 6.75 {
-            bestAnswer.h = 6.75;
+        if bestAnswer.h > 7.75 {
+            bestAnswer.h = 7.75;
         }
 
         let angForBestKick = ((bestAnswer.h - _ball.position3().h) / finalVel.toVec2().len()).atan() + 3.1415/2.0;
@@ -791,22 +798,14 @@ impl MyStrategy {
                     let (best_touch_point,ball_speed_after_touch) =  self.best_place_on_ball_for_kick(bestVec,&(virBall),rulesCopy.ROBOT_MAX_JUMP_SPEED,&(rulesCopy),kMode);
                     bPIF = best_touch_point.toVec2();
 
-                    // if kMode == kickMode::shotForGoal {
-                    //     bPIF  = ballPath[j]+ (ballPath[j] - newTarget).normalize()*(self.game.ball.radius + self.me.radius - 1.0);
-                    // } else if kMode == kickMode::chanceCreation {
-                    //     bPIF  = ballPath[j]+ (ballPath[j] - newTarget).normalize()*(self.game.ball.radius + self.me.radius - 1.0);
-                    // } else {
-                    //     bPIF  = ballPath[j]+ (robot_pos - ballPath[j]).normalize()*(self.game.ball.radius - 0.5);
-                    // }
-
-                    let robottravel_time = self.travel_time_it(&(best_touch_point.toVec2()));
+                    let robottravel_time = self.travel_time(&(best_touch_point.toVec2()));
                     let mut hHeight = 8.0;
                     if kMode==kickMode::clearDanger {
                         hHeight = 8.0;
                     }
 
 
-                    if (robottravel_time -(j as f64)/(self.rules.TICKS_PER_SECOND as f64)) <= 0.02  && (ballH[j] < hHeight) {
+                    if (robottravel_time -(j as f64)/(self.rules.TICKS_PER_SECOND as f64)) <= global_step_time  && (ballH[j] < hHeight) {
                         let BC = self.ball_future[j].clone();
                         self.myDrawer.draw(best_touch_point,0.5,(1.0,1.0,1.0));
                         self.myDrawer.draw(BC.position3(),2.0,(0.0,1.0,0.0));
@@ -861,25 +860,25 @@ impl MyStrategy {
                             let kModeCopy = kMode.clone();
                             let res = self.god_simulation(ballCopy, best_touch_point,Vec3::new((*target).x,(*target).y,ballH[j]),actual_time, kModeCopy );
 
-                            if res.0 == true && (res.1.normalize().inner_product(&(newTarget - ballCopy.position3()).normalize()) > 0.7 || res.1.y >= 5.0){
+                            if res.0 == true {//} && (res.1.toVec2().normalize().inner_product(&(newTarget.toVec2() - ballCopy.position()).normalize()) > 0.5 || res.1.y >= 5.0){
                                 wtfIsThis = true;
                                 feasiblePointsMaxSpeed.push(0.0);
                                 feasiblePoints.push(bPIF);
                                 let mut _point = 4000.0 / (j as f64) ;
 
                                 feasiblePointsTickDiff.push(res.4);
-                                if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 && kMode!=kickMode::clearDanger && ballPath[j].y >= 10.0 {
-                                    _point +=  ballH[j] + ball_speed_after_touch/2.0;
-                                    if ballPath[j].y >= 0.0 {
-                                        _point = _point + 25.0;
-                                    }
-                                }
+                                // if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 && kMode!=kickMode::clearDanger && ballPath[j].y >= 10.0 {
+                                //     _point +=  ballH[j] + ball_speed_after_touch/2.0;
+                                //     if ballPath[j].y >= 0.0 {
+                                //         _point = _point + 25.0;
+                                //     }
+                                // }
 
                                 feasiblePointsScore.push(_point);
                                 feasiblePointsHeight.push (best_touch_point.h);
                                 feasiblePointsTickNum.push(j as f64);
                                 feasiblePointsJumptSpeed.push(res.2);
-                                feasiblePointsTickBJ.push((j as f64) - res.5 * (self.rules.TICKS_PER_SECOND as f64));
+                                feasiblePointsTickBJ.push(res.5);
                                 found_best_sol = true;
                             }
                         }
@@ -927,7 +926,7 @@ impl MyStrategy {
             let mut t_change_dir = 0.0;
             let step_time = 1.0/ ((self.rules.TICKS_PER_SECOND as f64));
 
-            if self.game.ball.position().y + self.game.ball.velocity().y <= -20.0 && kMode == kickMode::shotForGoal && tochPoint.y <= -20.0{
+            if false &&  self.game.ball.position().y + self.game.ball.velocity().y <= -20.0 && kMode == kickMode::shotForGoal && tochPoint.y <= -20.0{
                 Self::gtp(&(Vec2::new(0.0,-10.0)), &self.me, &self.rules, &mut self.action);
             }
             else if waitForBall > step_time{
