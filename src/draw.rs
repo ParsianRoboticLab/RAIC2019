@@ -1,3 +1,4 @@
+
 #[derive(Copy, Clone, Debug, Default)]
 struct Sphere {
     rad:f64,
@@ -38,30 +39,32 @@ struct drawer {
 }
 impl drawer {
     fn createFinalString(&mut self) -> String {
-        let mut finalRes = String::new();
-        finalRes.push_str("[
-        ");
-        for i in 0..self.sphereList.len() {
 
-            finalRes.push_str(&format!(" {{ \"Sphere\": {{
-                \"x\": {},
-                \"y\": {},
-                \"z\": {},
-                \"radius\": {},
-                \"r\": {},
-                \"g\": {},
-                \"b\": {},
-                \"a\": 0.5
+        let mut finalRes = String::new();
+        if CAN_DRAW {
+            finalRes.push_str("[
+            ");
+            for i in 0..self.sphereList.len() {
+
+                finalRes.push_str(&format!(" {{ \"Sphere\": {{
+                    \"x\": {},
+                    \"y\": {},
+                    \"z\": {},
+                    \"radius\": {},
+                    \"r\": {},
+                    \"g\": {},
+                    \"b\": {},
+                    \"a\": 0.5
+                }}
             }}
-        }}
-        ",self.sphereList[i].center.x,self.sphereList[i].center.h,self.sphereList[i].center.y,self.sphereList[i].rad,self.sphereList[i].color.0,self.sphereList[i].color.1,self.sphereList[i].color.2)[..]);
-        if i < self.sphereList.len() - 1 {
+            ",self.sphereList[i].center.x,self.sphereList[i].center.h,self.sphereList[i].center.y,self.sphereList[i].rad,self.sphereList[i].color.0,self.sphereList[i].color.1,self.sphereList[i].color.2)[..]);
+            if i < self.sphereList.len() - 1 {
+                finalRes.push_str(",");
+            }
+        }
+        if self.sphereList.len() >= 1  && self.lineList.len() >= 1{
             finalRes.push_str(",");
         }
-    }
-    if self.sphereList.len() >= 1  && self.lineList.len() >= 1{
-        finalRes.push_str(",");
-    }
 
         for i in 0..self.lineList.len() {
 
@@ -86,19 +89,19 @@ impl drawer {
     }
 
 
-      finalRes.push_str (&format!(",{{
+    finalRes.push_str (&format!(",{{
         \"Text\": \"{} \"
     }}",self.debugTxt));
 
-
+    
     finalRes.push_str ("
     ]");
 
 
     self.lineList.clear();
     self.sphereList.clear();
-
-    finalRes
+}
+finalRes
 }
 
 fn draw(&mut self, pos : Vec3, rad : f64, color : (f64,f64,f64)) {
