@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 const TWO_PI : f64 = 2.0 * std::f64::consts::PI;
 const EPSILON : f64 = 1.0e-6;
 const BALL_PREDICTION_TICKS : usize = 160;
-const CAN_DRAW : bool = true;
+const CAN_DRAW : bool = false;
 const global_step_time : f64 = 1.0/ ((60 as f64));
 
 include!("pid.rs");
@@ -450,6 +450,7 @@ impl MyStrategy {
         return (position,velocity);
 
     }
+
     fn god_simulation (&mut self , _ball : Ball,_touch_point : Vec3,_target : Vec3, _time_availabe : f64, _kMode : kickMode) -> (bool,Vec3,f64,f64,f64,f64){
         let step_time = 1.0/ ((self.rules.TICKS_PER_SECOND as f64));
         let mut position = self.me.position3();
@@ -485,7 +486,7 @@ impl MyStrategy {
                 let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
                 let kickSeg = Seg2::new(tochPoint + (tochPoint - target).normalize()*(maxSpeedDist / 2.0),tochPoint + (tochPoint - target).normalize()*15.0);
                 let mut altPoint = tochPoint;
-                 altPoint.y =  tochPoint.y- maxSpeedDist ;//kickSeg.nearest_point(&(position.toVec2()));
+                altPoint.y =  tochPoint.y- maxSpeedDist ;//kickSeg.nearest_point(&(position.toVec2()));
                 if(_kMode == kickMode::clearDanger) {
                     let y_goal = self.rules.arena.depth/-2.0 + 1.0;
                     altPoint = Vec2::new(0.0,y_goal);
@@ -576,7 +577,19 @@ impl MyStrategy {
 
         return result;
     }
+    fn calc_point_for_reflect_kick(&mut self,_ball : Ball , _target : Vec3) -> Vec3{
+        let ball2D = _ball.position();
+        let target2D = _target.toVec2();
+        let mut x = self.rules.arena.width / 2.0;
+        let mut result = _target;
+        if ball2D.x < 0.0 {
+            x = -1.0*x;
+        }
+        result.x = x;
+        result.y = (ball2D.y*x - ball2D.y*target2D.x + target2D.y*x - target2D.y * ball2D.x) / (2.0*x - ball2D.x - target2D.x);
+        return result;
 
+    }
     fn ballPosInTheFuture (&mut self, t : f64) -> Vec2 {
         let ballPos = self.game.ball.position();
         ballPos + self.game.ball.velocity() * t
@@ -788,10 +801,20 @@ impl MyStrategy {
 
                 for j in 0..self.ball_future.len() {
                     ballPath[j] = self.ball_future[j].position3();
-                    ballH[j] = self.ball_future[j].height() ;
+                    ballH[j] = self.ball_future[j].height();
+                    let BC = self.ball_future[j].clone();
+
                     let mut bPIF = Vec2::new(0.0,0.0);
                     let mut newTarget = Vec3::new((*target).x,(*target).y ,7.0);
+                    let reflect_target = self.calc_point_for_reflect_kick(BC, newTarget);
+                    if (ballPath[j].toVec2() - robot_pos).normalize().inner_product(&(newTarget.toVec2() - ballPath[j].toVec2()).normalize()) <
+                    (ballPath[j].toVec2() - robot_pos).normalize().inner_product(&(reflect_target.toVec2() - ballPath[j].toVec2()).normalize())
+                     && kMode==kickMode::shotForGoal && ballPath[j].y < self.rules.arena.depth / 2.0 - 20.0{
+                            newTarget = reflect_target;
+                    }
+
                     let bestVec = (newTarget - ballPath[j]).normalize();
+
                     let rulesCopy = self.rules.clone();
                     let virBall = self.ball_future[j];
                     // self.myDrawer.draw(newTarget,0.5,(1.0,1.0,0.5));
@@ -806,7 +829,6 @@ impl MyStrategy {
 
 
                     if (robottravel_time -(j as f64)/(self.rules.TICKS_PER_SECOND as f64)) <= global_step_time  && (ballH[j] < hHeight) {
-                        let BC = self.ball_future[j].clone();
                         self.myDrawer.draw(best_touch_point,0.5,(1.0,1.0,1.0));
                         self.myDrawer.draw(BC.position3(),2.0,(0.0,1.0,0.0));
 
@@ -867,12 +889,11 @@ impl MyStrategy {
                                 let mut _point = 4000.0 / (j as f64) ;
 
                                 feasiblePointsTickDiff.push(res.4);
-                                // if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 && kMode!=kickMode::clearDanger && ballPath[j].y >= 10.0 {
-                                //     _point +=  ballH[j] + ball_speed_after_touch/2.0;
-                                //     if ballPath[j].y >= 0.0 {
-                                //         _point = _point + 25.0;
-                                //     }
-                                // }
+                                if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 && kMode!=kickMode::clearDanger && ballPath[j].y >= 10.0 {
+                                    _point +=  25.0+ball_speed_after_touch/2.0;
+
+
+                                }
 
                                 feasiblePointsScore.push(_point);
                                 feasiblePointsHeight.push (best_touch_point.h);
@@ -955,6 +976,7 @@ impl MyStrategy {
             }
         }
     }
+
     fn pm(&mut self, target: &Vec2) {
         for i in 0..self.robot_hist.len() {
             self.myDrawer.draw(self.robot_hist[i].position3() , 1.0 , (0.5,0.5,0.5) );
