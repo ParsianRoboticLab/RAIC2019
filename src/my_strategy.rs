@@ -195,10 +195,12 @@ impl MyStrategy {
         // println!("LS: {}", self.height_c);
         if self.game.ball.position().y  + self.game.ball.velocity().y < -20.0 {
             //     self.kick(&Vec2::new(0.0, 100.0), kickMode::clearDanger);
+            let opp_goal = Vec2::new(0.0, self.rules.arena.depth/2.0 + 2.0);
+
             if self.game.ball.position().y < self.me.position().y {
-                self.kick(&Vec2::new(0.0, -y_goal), kickMode::clearDanger);
+                self.kick(&opp_goal, kickMode::clearDanger);
             } else  {
-                self.kick(&clear_spot, kickMode::clearDanger);
+                self.kick(&opp_goal, kickMode::clearDanger);
             }
         } else {
             ////
@@ -809,7 +811,7 @@ impl MyStrategy {
                     let reflect_target = self.calc_point_for_reflect_kick(BC, newTarget);
                     if (ballPath[j].toVec2() - robot_pos).normalize().inner_product(&(newTarget.toVec2() - ballPath[j].toVec2()).normalize()) <
                     (ballPath[j].toVec2() - robot_pos).normalize().inner_product(&(reflect_target.toVec2() - ballPath[j].toVec2()).normalize())
-                     && kMode==kickMode::shotForGoal && ballPath[j].y < self.rules.arena.depth / 2.0 - 20.0{
+                     && kMode==kickMode::shotForGoal && ballPath[j].y < self.rules.arena.depth / 2.0 - 20.0 || kMode == kickMode::clearDanger{
                             newTarget = reflect_target;
                     }
 
