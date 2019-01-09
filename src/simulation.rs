@@ -207,7 +207,10 @@ impl Simulation {
             if _me.id == _id || _me.touch {
                 continue;
             }
+<<<<<<< HEAD
             let mut jump_speed = 0.0;
+=======
+>>>>>>> b55cd026b13f7545cd0c1674adf2427d351408e9
             if _me.touch {
                 let mut target_vel = Self::clamp(&_me.velocity3(), // <- this should be action.target_vel()
                  _rules.ROBOT_MAX_GROUND_SPEED);
@@ -219,6 +222,7 @@ impl Simulation {
                     _me.set_velocity(&(robot_vel + Self::clamp(&(target_vel_change.normalize() * acc * delta_time), target_vel_change.len())));
                 }
                 // TODO : USE NITRO
+<<<<<<< HEAD
             } else {
                 jump_speed = _me.velocity3().h;// _rules.ROBOT_MAX_JUMP_SPEED;
             }
@@ -230,6 +234,15 @@ impl Simulation {
                 Self::collide_entities(_me, &mut _game.ball, 0.0, _rules);
             }
             let collision_normal = Self::collide_with_arena(_me, jump_speed, _rules);
+=======
+            }
+
+            Self::move_e(_me, delta_time, _rules);
+            _me.radius = _rules.ROBOT_MIN_RADIUS + (_rules.ROBOT_MAX_RADIUS - _rules.ROBOT_MIN_RADIUS) * 0.0 // <- This should be action.jump_speed
+             / _rules.ROBOT_MAX_JUMP_SPEED;
+            Self::collide_entities(_me, &mut _game.ball, 0.0, _rules);
+            let collision_normal = Self::collide_with_arena(_me, 0.0, _rules);
+>>>>>>> b55cd026b13f7545cd0c1674adf2427d351408e9
             if ! collision_normal.is_valid() {
                 _me.touch = false;
             } else {
@@ -266,9 +279,9 @@ impl Simulation {
     fn get_ball_path(_me: i32, _game: &Game, _rules : &Rules) -> [Ball;BALL_PREDICTION_TICKS] {
         let mut res = [Ball::default(); BALL_PREDICTION_TICKS];
         let mut game = &mut _game.clone();
-        for i in 0..res.len() {
+        for i in res.iter_mut() {
             Self::tick_game(_me, &mut game, _rules);
-            res[i] = game.ball;
+            *i = game.ball;
         }
         res
     }
