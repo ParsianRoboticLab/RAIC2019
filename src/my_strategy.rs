@@ -478,6 +478,7 @@ impl MyStrategy {
         if (_time_to_reach_for_wait >= _time_availabe - step_time) {
             wasteTime = 0.0;
         }
+        let mut can_touch_ball = false;
         self.myDrawer.drawText(format!("bekhoda khorde , reach_time {}, ball_time {}",_time_to_reach_for_wait,_time_availabe));
 
         for i in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 40) {
@@ -561,7 +562,10 @@ impl MyStrategy {
             virtualBot.set_position(&position);
             virtualBot.set_velocity(&vel);
 
-            if position.dist(_ball.position3()) < self.me.radius + self.game.ball.radius  {
+            if position.dist(_ball.position3()) < self.me.radius + self.game.ball.radius {
+                can_touch_ball = true;
+            }
+            if position.dist(_touch_point) < self.rules.ROBOT_MAX_GROUND_SPEED*step_time  / 2.0 && can_touch_ball == true {
                 for j in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 10) {
                     self.myDrawer.draw(selectedPath[j],0.5,(1.0,0.0,0.0));
                 }
@@ -652,7 +656,7 @@ impl MyStrategy {
 
 
         if (true || _k_mode == kickMode::clearDanger) {
-            bestAnswer.h = _ball.position3().h - self.me.radius ;
+            bestAnswer.h = _ball.position3().h - self.me.radius - 0.6;
         }
         if bestAnswer.h < self.me.radius {
             bestAnswer.h = self.me.radius;
@@ -761,7 +765,7 @@ impl MyStrategy {
         let mut bestTick = 0;
         let mut bestJumpSpeed = 0.0;
         let mut best_tick_beforeJump = 0.0;
-        if ballVel.len() <= std::f64::EPSILON  {
+        if ballVel.len() <= std::f64::EPSILON {
             // self.myDrawer.draw(self.game.ball.position3(),5.0,(1.0,0.0,0.0));
             // self.myDrawer.draw(self.me.position3(),5.0,(0.0,1.0,0.0));
 
@@ -891,11 +895,11 @@ impl MyStrategy {
                                 let mut _point = 4000.0 / (j as f64) ;
 
                                 feasiblePointsTickDiff.push(res.4);
-                                if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 && kMode!=kickMode::clearDanger && ballPath[j].y >= 10.0 {
-                                    _point +=  25.0+ball_speed_after_touch/2.0;
-
-
-                                }
+                                // if ballPath[j].x.abs() <= self.rules.arena.goal_width/2.0 - 1.0 && kMode!=kickMode::clearDanger && ballPath[j].y >= 10.0 {
+                                //     _point +=  25.0+ball_speed_after_touch/2.0;
+                                //
+                                //
+                                // }
 
                                 feasiblePointsScore.push(_point);
                                 feasiblePointsHeight.push (best_touch_point.h);
@@ -958,8 +962,11 @@ impl MyStrategy {
                     tochPoint.y -= maxSpeedDist;
                     Self::gtp(&tochPoint, &self.me, &self.rules, &mut self.action);
                 } else {
-                    let y_goal = self.rules.arena.depth/-2.0 + 1.0;
-                    if(tochPoint.x.abs() > self.rules.arena.goal_width/2.0) {
+                    let mut y_goal = self.rules.arena.depth/-2.0 + 1.0;
+                    if (tochPoint.y < -self.rules.arena.depth/2.0 + 1.0) {
+                        y_goal -= 2.0;
+                    }
+                    if(tochPoint.x.abs() > self.rules.arena.goal_width/2.0) || true{
                         Self::gtp(&(Vec2::new(0.0,y_goal)), &self.me, &self.rules, &mut self.action);
                     } else {
                         Self::gtp(&tochPoint, &self.me, &self.rules, &mut self.action);
