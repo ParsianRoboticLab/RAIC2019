@@ -407,17 +407,34 @@ impl MyStrategy {
         let mut position = _position;
         let step_time = (1.0/ ((self.rules.TICKS_PER_SECOND as f64)));
         let mut target = _target;
-        if (target).y > self.rules.arena.depth / 2.0 {
-            (target).y = self.rules.arena.depth / 2.0;
+        let _rules = self.rules.clone();
+        let me = self.me.clone();
+        if (target).y > _rules.arena.depth / 2.0 - _rules.arena.bottom_radius - me.radius{
+            (target).y = _rules.arena.depth / 2.0 - _rules.arena.bottom_radius - me.radius;
         }
-        if target.y < self.rules.arena.depth / -2.0 {
-            target.y = self.rules.arena.depth / -2.0;
+        if target.x > _rules.arena.width / 2.0 - _rules.arena.bottom_radius - me.radius {
+            target.x = _rules.arena.width / 2.0 - _rules.arena.bottom_radius- me.radius;
         }
-        if target.x > self.rules.arena.width / 2.0 {
-            target.x = self.rules.arena.width / 2.0;
+        if target.x < _rules.arena.width / -2.0 +_rules.arena.bottom_radius + me.radius{
+            target.x = _rules.arena.width / -2.0 + _rules.arena.bottom_radius + me.radius;
         }
-        if target.x < self.rules.arena.width / -2.0 {
-            target.x = self.rules.arena.width / -2.0;
+
+        if (target.y < _rules.arena.depth / -2.0 + _rules.arena.bottom_radius) {
+            if target.x > _rules.arena.goal_width/2.0 - _rules.arena.bottom_radius - me.radius {
+                target.x = _rules.arena.goal_width/2.0 - _rules.arena.bottom_radius- me.radius;
+            }
+            if target.x < -_rules.arena.goal_width/2.0 + _rules.arena.bottom_radius + me.radius{
+                target.x = -_rules.arena.goal_width/2.0 + _rules.arena.bottom_radius+ me.radius;
+            }
+        }
+        if (target.x.abs() < _rules.arena.goal_width/2.0 - _rules.arena.bottom_radius) {
+            if target.y < _rules.arena.depth / -2.0 - _rules.arena.goal_depth + _rules.arena.bottom_radius +  me.radius{
+                target.y = _rules.arena.depth / -2.0 - _rules.arena.goal_depth + _rules.arena.bottom_radius + me.radius;
+            }
+        } else {
+            if target.y < _rules.arena.depth / -2.0 + _rules.arena.bottom_radius - me.radius{
+                target.y = _rules.arena.depth / -2.0 + _rules.arena.bottom_radius - me.radius ;
+            }
         }
 
         let dist = _position.toVec2().dist(target);
@@ -813,8 +830,8 @@ impl MyStrategy {
                     let mut bPIF = Vec2::new(0.0,0.0);
                     let mut newTarget = Vec3::new((*target).x,(*target).y ,7.0);
                     let reflect_target = self.calc_point_for_reflect_kick(BC, newTarget);
-                    if (ballPath[j].toVec2() - robot_pos).normalize().inner_product(&(newTarget.toVec2() - ballPath[j].toVec2()).normalize()) <
-                    (ballPath[j].toVec2() - robot_pos).normalize().inner_product(&(reflect_target.toVec2() - ballPath[j].toVec2()).normalize())
+                    if ((ballPath[j].toVec2() - robot_pos).normalize().inner_product(&(newTarget.toVec2() - ballPath[j].toVec2()).normalize()) <
+                    (ballPath[j].toVec2() - robot_pos).normalize().inner_product(&(reflect_target.toVec2() - ballPath[j].toVec2()).normalize()))
                      && kMode==kickMode::shotForGoal && ballPath[j].y < self.rules.arena.depth / 2.0 - 20.0 || kMode == kickMode::clearDanger{
                             newTarget = reflect_target;
                     }
@@ -958,15 +975,13 @@ impl MyStrategy {
             }
             else if waitForBall > step_time{
                 let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
+                tochPoint.y -= maxSpeedDist;
                 if kMode!= kickMode::clearDanger {
-                    tochPoint.y -= maxSpeedDist;
+
                     Self::gtp(&tochPoint, &self.me, &self.rules, &mut self.action);
                 } else {
                     let mut y_goal = self.rules.arena.depth/-2.0 + 1.0;
-                    if (tochPoint.y < -self.rules.arena.depth/2.0 + 1.0) {
-                        y_goal -= 2.0;
-                    }
-                    if(tochPoint.x.abs() > self.rules.arena.goal_width/2.0) || true{
+                    if(tochPoint.x.abs() > self.rules.arena.goal_width/2.0 - self.game.ball.radius){
                         Self::gtp(&(Vec2::new(0.0,y_goal)), &self.me, &self.rules, &mut self.action);
                     } else {
                         Self::gtp(&tochPoint, &self.me, &self.rules, &mut self.action);
@@ -999,7 +1014,8 @@ impl MyStrategy {
         }
 
         // if self.game.ball.position().y + self.game.ball.velocity().y > -20.0 {
-            self.kick(&newTarget,kickMode::shotForGoal);
+
+            self.kick(&(newTarget),kickMode::shotForGoal);
         // } else {
         //     Self::gtp(&(Vec2::new(0.0,-10.0)), &self.me, &self.rules, &mut self.action);
         // }
@@ -1009,18 +1025,35 @@ impl MyStrategy {
     fn gtp(target_main: &Vec2, me: &Robot, _rules: &Rules, action: &mut Action) {
 
         let mut target = *target_main;
-        if (target).y > _rules.arena.depth / 2.0 {
-            (target).y = _rules.arena.depth / 2.0;
+        if (target).y > _rules.arena.depth / 2.0 - _rules.arena.bottom_radius - me.radius{
+            (target).y = _rules.arena.depth / 2.0 - _rules.arena.bottom_radius - me.radius;
         }
-        if target.y < _rules.arena.depth / -2.0 {
-            target.y = _rules.arena.depth / -2.0;
+        if target.x > _rules.arena.width / 2.0 - _rules.arena.bottom_radius - me.radius {
+            target.x = _rules.arena.width / 2.0 - _rules.arena.bottom_radius- me.radius;
         }
-        if target.x > _rules.arena.width / 2.0 {
-            target.x = _rules.arena.width / 2.0;
+        if target.x < _rules.arena.width / -2.0 +_rules.arena.bottom_radius + me.radius{
+            target.x = _rules.arena.width / -2.0 + _rules.arena.bottom_radius + me.radius;
         }
-        if target.x < _rules.arena.width / -2.0 {
-            target.x = _rules.arena.width / -2.0;
+
+        if (target.y < _rules.arena.depth / -2.0 + _rules.arena.bottom_radius) {
+            if target.x > _rules.arena.goal_width/2.0 - _rules.arena.bottom_radius - me.radius {
+                target.x = _rules.arena.goal_width/2.0 - _rules.arena.bottom_radius- me.radius;
+            }
+            if target.x < -_rules.arena.goal_width/2.0 + _rules.arena.bottom_radius + me.radius{
+                target.x = -_rules.arena.goal_width/2.0 + _rules.arena.bottom_radius+ me.radius;
+            }
         }
+        if (target.x.abs() < _rules.arena.goal_width/2.0 - _rules.arena.bottom_radius) {
+            if target.y < _rules.arena.depth / -2.0 - _rules.arena.goal_depth + _rules.arena.bottom_radius +  me.radius{
+                target.y = _rules.arena.depth / -2.0 - _rules.arena.goal_depth + _rules.arena.bottom_radius + me.radius;
+            }
+        } else {
+            if target.y < _rules.arena.depth / -2.0 + _rules.arena.bottom_radius - me.radius{
+                target.y = _rules.arena.depth / -2.0 + _rules.arena.bottom_radius - me.radius ;
+            }
+        }
+
+
 
         let dist = me.position().dist(target);
         let diff = target - me.position();

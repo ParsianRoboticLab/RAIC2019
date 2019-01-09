@@ -203,40 +203,40 @@ impl Simulation {
         Self::move_e(&mut _game.ball, delta_time, _rules);
         Self::collide_with_arena(&mut _game.ball, 0.0, _rules);
 
-        // for _me in &mut _game.robots {
-        //     if _me.id == _id || _me.touch {
-        //         continue;
-        //     }
-        //     let mut jump_speed = 0.0;
-        //     if _me.touch {
-        //         let mut target_vel = Self::clamp(&_me.velocity3(), // <- this should be action.target_vel()
-        //          _rules.ROBOT_MAX_GROUND_SPEED);
-        //         target_vel -= _me.touch_normal() * _me.touch_normal().inner_product(&target_vel);
-        //         let target_vel_change = target_vel - _me.velocity3();
-        //         if target_vel_change.len() > 0.0 {
-        //             let acc = _rules.ROBOT_ACCELERATION * _me.touch_normal_y.unwrap().max(0.0);
-        //             let robot_vel = _me.velocity3();
-        //             _me.set_velocity(&(robot_vel + Self::clamp(&(target_vel_change.normalize() * acc * delta_time), target_vel_change.len())));
-        //         }
-        //         // TODO : USE NITRO
-        //     } else {
-        //         jump_speed = _me.velocity3().h;// _rules.ROBOT_MAX_JUMP_SPEED;
-        //     }
-        //     Self::move_e(_me, delta_time, _rules);
-        //     _me.radius = _rules.ROBOT_MIN_RADIUS + (_rules.ROBOT_MAX_RADIUS - _rules.ROBOT_MIN_RADIUS) * jump_speed // <- This should be action.jump_speed
-        //      / _rules.ROBOT_MAX_JUMP_SPEED;
-        //      //tof js ro 0 gozashtam
-        //     if _me.position3().h > 0.0 || _me.velocity().len() < 0.1{
-        //         Self::collide_entities(_me, &mut _game.ball, 0.0, _rules);
-        //     }
-        //     let collision_normal = Self::collide_with_arena(_me, jump_speed, _rules);
-        //     if ! collision_normal.is_valid() {
-        //         _me.touch = false;
-        //     } else {
-        //         _me.touch = true;
-        //         _me.set_touch_normal(&collision_normal);
-        //     }
-        // }
+        for _me in &mut _game.robots {
+            if _me.id == _id || _me.touch {
+                continue;
+            }
+            let mut jump_speed = 0.0;
+            if _me.touch {
+                let mut target_vel = Self::clamp(&_me.velocity3(), // <- this should be action.target_vel()
+                 _rules.ROBOT_MAX_GROUND_SPEED);
+                target_vel -= _me.touch_normal() * _me.touch_normal().inner_product(&target_vel);
+                let target_vel_change = target_vel - _me.velocity3();
+                if target_vel_change.len() > 0.0 {
+                    let acc = _rules.ROBOT_ACCELERATION * _me.touch_normal_y.unwrap().max(0.0);
+                    let robot_vel = _me.velocity3();
+                    _me.set_velocity(&(robot_vel + Self::clamp(&(target_vel_change.normalize() * acc * delta_time), target_vel_change.len())));
+                }
+                // TODO : USE NITRO
+            } else {
+                jump_speed = _me.velocity3().h;// _rules.ROBOT_MAX_JUMP_SPEED;
+            }
+            Self::move_e(_me, delta_time, _rules);
+            _me.radius = _rules.ROBOT_MIN_RADIUS + (_rules.ROBOT_MAX_RADIUS - _rules.ROBOT_MIN_RADIUS) * jump_speed // <- This should be action.jump_speed
+             / _rules.ROBOT_MAX_JUMP_SPEED;
+             //tof js ro 0 gozashtam
+            if _me.position3().h > 0.0 || _me.velocity().len() < 0.1{
+                Self::collide_entities(_me, &mut _game.ball, 0.0, _rules);
+            }
+            let collision_normal = Self::collide_with_arena(_me, jump_speed, _rules);
+            if ! collision_normal.is_valid() {
+                _me.touch = false;
+            } else {
+                _me.touch = true;
+                _me.set_touch_normal(&collision_normal);
+            }
+        }
 
         // for i in 0 .. _game.robots.len() {
         //     for j in 0 .. _game.robots.len() {
