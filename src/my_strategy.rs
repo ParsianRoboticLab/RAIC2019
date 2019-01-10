@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 const TWO_PI : f64 = 2.0 * std::f64::consts::PI;
 const EPSILON : f64 = 1.0e-6;
 const BALL_PREDICTION_TICKS : usize = 150;
-const CAN_DRAW : bool = true;
+const CAN_DRAW : bool = false;
 const GLOBAL_STEP_TIME : f64 = 1.0/ ((60 as f64));
 
 include!("pid.rs");
@@ -405,7 +405,10 @@ impl MyStrategy {
         let target = MyStrategy::gtp_target_validation(_target, &self.rules, &self.me);
         let _rules = self.rules.clone();
         let dist = _position.toVec2().dist(target);
-        let _ac_speed = dist * 3.0;
+        let mut _ac_speed = (2.0*self.rules.ROBOT_ACCELERATION*dist).sqrt();
+        if _ac_speed >= self.rules.ROBOT_MAX_GROUND_SPEED {
+            _ac_speed = self.rules.ROBOT_MAX_GROUND_SPEED;
+        }
         position = position + velocity * step_time;
         position.h = position.h - (self.rules.GRAVITY * step_time * step_time / 2.0);
         velocity.h = velocity.h - (self.rules.GRAVITY * step_time);
@@ -875,6 +878,10 @@ impl MyStrategy {
         let dist = me.position().dist(target);
         let diff = target - me.position();
         let angle = (diff.y).atan2(diff.x);
+        let mut vel = (2.0*_rules.ROBOT_ACCELERATION*dist).sqrt();
+        if vel >= _rules.ROBOT_MAX_GROUND_SPEED {
+            vel = _rules.ROBOT_MAX_GROUND_SPEED;
+        }
         Self::set_robot_vel(angle, 3.0 * dist , 0.0, action);
     }
 
