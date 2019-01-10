@@ -750,7 +750,7 @@ impl MyStrategy {
                         self.my_drawer.draw(BC.position3(),2.0,(0.0,1.0,0.0));
                         let ballCopy = self.ball_future[j].clone();
                         let kModeCopy = kMode.clone();
-                        let res = self.god_simulation(ballCopy, best_touch_point,Vec3::new((*target).x,(*target).y,ballH[j]),actual_time, kModeCopy );
+                        let res = self.god_simulation(ballCopy, best_touch_point,newTarget,actual_time, kModeCopy );
                         //// check if that point is really feasible or not
                         if res.0 == true {//} && (res.1.toVec2().normalize().inner_product(&(newTarget.toVec2() - ballCopy.position()).normalize()) > 0.5 || res.1.y >= 5.0){
                             feasiblePointsMaxSpeed.push(0.0);
