@@ -263,7 +263,7 @@ impl Simulation {
         let mut game = &mut _game.clone();
         for i in res.iter_mut() {
             Self::tick_game(_me, &mut game, _rules);
-            *i = game.ball; 
+            *i = game.ball;
         }
         res
     }
