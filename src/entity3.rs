@@ -14,6 +14,7 @@ trait Entity3 {
     fn set_position(&mut self, p : &Vec3);
     fn set_velocity(&mut self, v : &Vec3);
     fn set_height(&mut self, h: f64);
+    fn set_velocity_h(&mut self, h: f64);
     fn set_touch_normal(&mut self, v : &Vec3);
 
 
@@ -72,6 +73,9 @@ impl Entity3 for Robot {
         self.touch_normal_y = Some(v.h);
         self.touch_normal_z = Some(v.y);
     }
+    fn set_velocity_h(&mut self, h: f64){
+        self.velocity_y = h;
+    }
 
 }
 
@@ -116,6 +120,9 @@ impl Entity3 for Ball {
     }
     fn set_touch_normal(&mut self, v: &Vec3) {
 
+    }
+    fn set_velocity_h(&mut self, h: f64){
+        self.velocity_y = h;
     }
 
 }

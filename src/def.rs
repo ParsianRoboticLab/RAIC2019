@@ -117,3 +117,7 @@ impl VEC for Action {
         }
     }
 }
+
+impl Copy for Ball {
+
+}
