@@ -207,7 +207,6 @@ impl Simulation {
             if _me.id == _id || _me.touch {
                 continue;
             }
-            let mut jump_speed = 0.0;
             if _me.touch {
                 let mut target_vel = Self::clamp(&_me.velocity3(), // <- this should be action.target_vel()
                  _rules.ROBOT_MAX_GROUND_SPEED);
@@ -219,17 +218,13 @@ impl Simulation {
                     _me.set_velocity(&(robot_vel + Self::clamp(&(target_vel_change.normalize() * acc * delta_time), target_vel_change.len())));
                 }
                 // TODO : USE NITRO
-            } else {
-                jump_speed = _me.velocity3().h;// _rules.ROBOT_MAX_JUMP_SPEED;
             }
+
             Self::move_e(_me, delta_time, _rules);
-            _me.radius = _rules.ROBOT_MIN_RADIUS + (_rules.ROBOT_MAX_RADIUS - _rules.ROBOT_MIN_RADIUS) * jump_speed // <- This should be action.jump_speed
+            _me.radius = _rules.ROBOT_MIN_RADIUS + (_rules.ROBOT_MAX_RADIUS - _rules.ROBOT_MIN_RADIUS) * 0.0 // <- This should be action.jump_speed
              / _rules.ROBOT_MAX_JUMP_SPEED;
-             //tof js ro 0 gozashtam
-            if _me.position3().h > 0.0 || _me.velocity().len() < 0.1{
-                Self::collide_entities(_me, &mut _game.ball, 0.0, _rules);
-            }
-            let collision_normal = Self::collide_with_arena(_me, jump_speed, _rules);
+            Self::collide_entities(_me, &mut _game.ball, 0.0, _rules);
+            let collision_normal = Self::collide_with_arena(_me, 0.0, _rules);
             if ! collision_normal.is_valid() {
                 _me.touch = false;
             } else {
@@ -258,7 +253,7 @@ impl Simulation {
 
     fn tick_game(_id: i32, _game: &mut Game, _rules: &Rules) {
         let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
-        for _ in 0 .. 50 - 1 {
+        for _ in 0 .. 50 {
             Self::update_game(_id, _game, _rules, delta_time / 50 as f64);
         }
     }
@@ -268,7 +263,7 @@ impl Simulation {
         let mut game = &mut _game.clone();
         for i in res.iter_mut() {
             Self::tick_game(_me, &mut game, _rules);
-            *i = game.ball;
+            *i = game.ball; 
         }
         res
     }

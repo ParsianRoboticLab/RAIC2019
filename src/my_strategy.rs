@@ -882,7 +882,7 @@ impl MyStrategy {
         if vel >= _rules.ROBOT_MAX_GROUND_SPEED {
             vel = _rules.ROBOT_MAX_GROUND_SPEED;
         }
-        Self::set_robot_vel(angle, 3.0 * dist , 0.0, action);
+        Self::set_robot_vel(angle, vel, 0.0, action);
     }
 
     fn set_robot_vel(angle : f64, vel: f64, jump : f64, action: &mut Action) {
