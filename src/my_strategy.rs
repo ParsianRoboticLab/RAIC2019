@@ -57,13 +57,6 @@ impl Strategy for MyStrategy {
     fn act(&mut self, me: &Robot, _rules: &Rules, _game: &Game, _action: &mut Action) {
         let now = Instant::now();
         self.tick += 1;
-        // if !me.touch {
-        //     println!("LOOP TIME: {:?}", now.elapsed());
-        //     println!("TIME PASS: {:?}", self.start.elapsed());
-        //     println!("TICK LEFT: {:?}", self.rules.max_tick_count - self.tick);
-        //     return
-        // }
-        // Choose Main Strategy (Coach) 1. DEF, 2. NORMAL, 3. OFF
         self.me = me.clone();
         self.rules = _rules.clone();
         self.game = _game.clone();
@@ -347,7 +340,7 @@ impl MyStrategy {
                 result = (i as f64) * step_time;
                 break;
             }
-            self.my_drawer.draw(Vec3::new(position.x,position.y,1.0),0.5,(1.0,1.0,1.0));
+            // self.my_drawer.draw(Vec3::new(position.x,position.y,1.0),0.5,(1.0,1.0,1.0));
             position = position + velocity * step_time;
             let target_vel_change = (*target - position).normalize()*self.rules.ROBOT_MAX_GROUND_SPEED - velocity;
             if target_vel_change.len() > 0.0 {
@@ -450,14 +443,14 @@ impl MyStrategy {
         _vir_robot_target = touch_point;
         let mut waste_time = 1000.0;
         let mut can_jump = 1000.0;
-        let mut selected_path = [Vec3::new(0.0,0.0,0.0) ;600];
+//        let mut selected_path = [Vec3::new(0.0,0.0,0.0) ;600];
         let _time_to_reach_for_wait = self.travel_time_alt(position.toVec2(), vel.toVec2(), &(touch_point));
         if _time_availabe - _time_to_reach_for_wait <= 4.0 * step_time  {
             waste_time = 0.0;
         }
         let mut can_touch_ball = false;
         for i in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 40) {
-            selected_path[i] = position;
+            // selected_path[i] = position;
             let _time = (i as f64) / ((self.rules.TICKS_PER_SECOND as f64) );
             let mut _time_to_reach = self.travel_time_alt(position.toVec2(), vel.toVec2(), &(touch_point));
             let extera_time =  _time_availabe - _time_to_reach - _time;
@@ -540,10 +533,10 @@ impl MyStrategy {
                 can_touch_ball = true;
             }
             if position.dist(_touch_point) < self.rules.ROBOT_MAX_GROUND_SPEED*step_time*10000.0 && can_touch_ball == true {
-                for j in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 10) {
-                    self.my_drawer.draw(selected_path[j],0.5,(1.0,0.0,0.0));
-                }
-                self.my_drawer.drawText(format!(" can _jump: {}, robot vel {} , bestVel {} , vel sim {}",can_jump,self.me.velocity().len(),best_speed,vel.toVec2().len()));
+                // for j in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 10) {
+                    // self.my_drawer.draw(selected_path[j],0.5,(1.0,0.0,0.0));
+                // }
+                // self.my_drawer.drawText(format!(" can _jump: {}, robot vel {} , bestVel {} , vel sim {}",can_jump,self.me.velocity().len(),best_speed,vel.toVec2().len()));
                 result.5 = can_jump;
                 result.4 = waste_time;
                 result.3 = extera_time;
@@ -746,8 +739,8 @@ impl MyStrategy {
                     let maximum_ball_height = 8.0;
                     //// find points that have potential of being feasible
                     if (robottravel_time -actual_time) <= GLOBAL_STEP_TIME  && ballH[j] < maximum_ball_height {
-                        self.my_drawer.draw(best_touch_point,0.5,(1.0,1.0,1.0));
-                        self.my_drawer.draw(BC.position3(),2.0,(0.0,1.0,0.0));
+                        // self.my_drawer.draw(best_touch_point,0.5,(1.0,1.0,1.0));
+                        // self.my_drawer.draw(BC.position3(),2.0,(0.0,1.0,0.0));
                         let ballCopy = self.ball_future[j].clone();
                         let kModeCopy = kMode.clone();
                         let res = self.god_simulation(ballCopy, best_touch_point,newTarget,actual_time, kModeCopy );
@@ -785,7 +778,7 @@ impl MyStrategy {
                 if feasiblePoints.len() == 2 && kMode == KickMode::ClearDanger{
                     touch_point = Vec2::new(0.0,self.rules.arena.depth/-2.0 + 1.0);
                 }
-                self.my_drawer.draw(Vec3::new(touch_point.x,touch_point.y,bestHeight),1.0,(0.0,1.0,1.0));
+                // self.my_drawer.draw(Vec3::new(touch_point.x,touch_point.y,bestHeight),1.0,(0.0,1.0,1.0));
                 //// find out jump or not
                 if best_tick_beforeJump < 1.0 {
                     jump = bestJumpSpeed;
@@ -813,7 +806,7 @@ impl MyStrategy {
                         Self::gtp(&touch_point, &self.me, &self.rules, &mut self.action);
                     }
                 }
-                self.my_drawer.draw(Vec3::new(touch_point.x,touch_point.y,bestHeight),1.5,(1.0,1.0,1.0));
+                // self.my_drawer.draw(Vec3::new(touch_point.x,touch_point.y,bestHeight),1.5,(1.0,1.0,1.0));
 
 
             } else {
@@ -830,7 +823,7 @@ impl MyStrategy {
 
     fn pm(&mut self, target: &Vec2) {
         for i in 0..self.robot_hist.len() {
-            self.my_drawer.draw(self.robot_hist[i].position3() , 1.0 , (0.5,0.5,0.5) );
+            // self.my_drawer.draw(self.robot_hist[i].position3() , 1.0 , (0.5,0.5,0.5) );
         }
         let mut newTarget = *target;
         if self.game.ball.position().x > self.rules.arena.width / 2.0 - 2.0 {
