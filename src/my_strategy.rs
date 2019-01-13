@@ -498,7 +498,7 @@ impl MyStrategy {
         }
 
         let mut can_touch_ball = false;
-        for i in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 10) {
+        for i in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 20) {
             selected_path[i] = position;
             self.my_drawer.draw(position,0.5,(1.0,0.0,0.0));
 
@@ -507,7 +507,7 @@ impl MyStrategy {
             let extera_time =  _time_availabe - _time_to_reach - _time;
             if  extera_time > step_time {
                 let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
-                let mut altPoint = touch_point;
+                let mut altPoint = touch_point - (Vec2::new(0.0,1.0));
 
 
                 if _k_mode == KickMode::ClearDanger{
@@ -880,7 +880,7 @@ impl MyStrategy {
             ////// if robot reach to the best point faster than ball
             if waitForBall > GLOBAL_STEP_TIME{
                 let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
-
+                touch_point = touch_point - (Vec2::new(0.0,1.0));
                 if (kMode == KickMode::ClearDanger) {
                     touch_point = self.me.position().clone();
                 }
