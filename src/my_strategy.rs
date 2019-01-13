@@ -216,7 +216,7 @@ impl MyStrategy {
     fn gk(&mut self) {
 
         let clear_spot = (self.game.ball.position() - self.me.position()).normalize() * 100.0;
-        let y_goal = -self.rules.arena.depth/2.0 + 1.0;
+        let y_goal = -self.rules.arena.depth/2.0 - 2.0;
         if self.game.ball.height() < 4.0 {
             self.height_c += 1;
         } else {
@@ -336,11 +336,11 @@ impl MyStrategy {
         let mut velocity = _meVel;
         let mut position = _mePos;
         let mut result = 10000.0;
-        let perS = 10.0;
+        let perS = 5.0;
         let step_time = (1.0/ ((self.rules.TICKS_PER_SECOND as f64)*perS));
-        for i in 0..BALL_PREDICTION_TICKS*10 {
+        for i in 0..BALL_PREDICTION_TICKS*5 {
             let idealPath = (*target - position).th().deg()*DEG2RAD;
-            if position.dist(*target) <= 0.05{
+            if position.dist(*target) <= 0.15{
                 result = (i as f64) * step_time;
                 break;
             }
@@ -469,12 +469,12 @@ impl MyStrategy {
     }
 
     fn god_simulation (&mut self , _ball : Ball,_touch_point : Vec3,_target : Vec3, _time_availabe : f64, _k_mode : KickMode) -> (bool,Vec3,f64,f64,f64,f64){
-        let mut me = self.real_me_0.clone();
-        let mut last_me = self.robot_hist_0[0].clone();
-        if self.me.id == 2 || self.me.id == 4 {
-            last_me = self.robot_hist_1[0].clone();
-            me = self.real_me_1.clone();
-        }
+        let mut me = self.me.clone();//real_me_0.clone();
+        // let mut last_me = self.robot_hist_0[0].clone();
+        // if self.me.id == 2 || self.me.id == 4 {
+        //     last_me = self.robot_hist_1[0].clone();
+        //     me = self.real_me_1.clone();
+        // }
         let step_time = GLOBAL_STEP_TIME;
         let mut position = me.position3();
         let mut vel = me.velocity3();
@@ -492,7 +492,7 @@ impl MyStrategy {
         let mut selected_path = [Vec3::new(0.0,0.0,0.0) ;600];
         let mut vecDastan = Vec2::new(0.0,0.0);
         let me_copy = self.me.clone();
-        let robottravel_time = self.travel_time_alt(me_copy.position(),me_copy.velocity(),&(_touch_point.toVec2()));
+        let robottravel_time = self.travel_time_alt(position.toVec2(), vel.toVec2(),&(_touch_point.toVec2()));
         if _time_availabe - robottravel_time < step_time  {
             waste_time = 0.0;
         }
@@ -500,19 +500,19 @@ impl MyStrategy {
         let mut can_touch_ball = false;
         for i in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 10) {
             selected_path[i] = position;
-            self.my_drawer.draw(position,0.1,(1.0,0.0,0.0));
+            self.my_drawer.draw(position,0.5,(1.0,0.0,0.0));
+
             let _time = (i as f64) / ((self.rules.TICKS_PER_SECOND as f64) );
             let mut _time_to_reach = self.travel_time_alt(position.toVec2(), vel.toVec2(), &(touch_point));
             let extera_time =  _time_availabe - _time_to_reach - _time;
-            if  extera_time >= step_time {
+            if  extera_time > step_time {
                 let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
                 let mut altPoint = touch_point;
-                altPoint.y =  touch_point.y- maxSpeedDist;//*waste_time ;
-                let y_goal = self.rules.arena.depth/-2.0 + 1.0;
-                if altPoint.x.abs() > self.rules.arena.goal_width/2.0  && altPoint.y < self.rules.arena.depth/-2.0 +1.0{
-                        altPoint = Vec2::new(0.0,y_goal);
+
+
+                if _k_mode == KickMode::ClearDanger{
+                        altPoint = position.toVec2();
                 }
-                vecDastan = altPoint;
                 let stepRes = self.god_step_gp(position, vel, altPoint, 0.0);
                 position = stepRes.0;
                 vel = stepRes.1;
@@ -553,7 +553,7 @@ impl MyStrategy {
                             jump_time= jumptimeDown;
                         }
 
-                        if temp_distBeforJump + distNeededForThisSpeed <= position.toVec2().dist(touch_point) - 0.2{
+                        if temp_distBeforJump + distNeededForThisSpeed <= position.toVec2().dist(touch_point) {
                             _vir_robot_target = touch_point;
                             jump_tick_time = _time_availabe - jump_time;
                             best_jump_speed = j_speed;
@@ -566,10 +566,10 @@ impl MyStrategy {
                 }
                 let mut _j_for_kick = 0.0;
 
-                if _time >= jump_tick_time  && (vel.toVec2().len() - best_speed).abs() < step_time*self.rules.ROBOT_ACCELERATION*0.5 {
+                if _time >= jump_tick_time && ((vel.toVec2().len() - best_speed).abs() < step_time*self.rules.ROBOT_ACCELERATION || vel.toVec2().len() < 0.1)  {
                     _j_for_kick = best_jump_speed;
                 }
-                if jump_tick_time < step_time && (me.velocity().len() - best_speed).abs() < step_time*self.rules.ROBOT_ACCELERATION*0.5{
+                if jump_tick_time < step_time && ((me.velocity().len() - best_speed).abs() < step_time*self.rules.ROBOT_ACCELERATION || vel.toVec2().len() < 0.1){
                     can_jump = 0.0;
                 }
                 // println!("best JS {}" , _j_for_kick);
@@ -584,7 +584,7 @@ impl MyStrategy {
             if position.dist(ball_pos) < self.me.radius + self.game.ball.radius {
                 can_touch_ball = true;
             }
-            if (position.dist(_touch_point) < self.rules.ROBOT_MAX_GROUND_SPEED*step_time*2.0 || _k_mode == KickMode::ClearDanger) && can_touch_ball == true {
+            if (position.dist(_touch_point) < self.rules.ROBOT_MAX_GROUND_SPEED*step_time*20000.0 || _k_mode == KickMode::ClearDanger) && can_touch_ball == true {
                 // for j in 0..(((_time_availabe)*(self.rules.TICKS_PER_SECOND as f64)) as usize + 10) {
                 //     self.my_drawer.draw(selected_path[j],0.5,(1.0,0.0,0.0));
                 // }
@@ -776,9 +776,14 @@ impl MyStrategy {
                     ballPath[j] = self.ball_future[j].position3();
                     ballH[j] = self.ball_future[j].height();
                     let BC = self.ball_future[j].clone();
-                    let actual_time = (j as f64 - 1.0)/ (self.rules.TICKS_PER_SECOND as f64);
+                    let actual_time = (j as f64 )/ (self.rules.TICKS_PER_SECOND as f64);
                     // TODO: using a good method for calculate target bestHeight
-                    let mut newTarget = Vec3::new((*target).x,(*target).y + 2.0,7.0);
+                    let mut hhh = 70.0;
+                    if BC.position().y > 10.0 {
+                        hhh = 7.0;
+                    }
+                    let mut newTarget = Vec3::new((*target).x,(*target).y + 2.0,hhh);
+
 
                     if BC.position3().x.abs() < self.rules.arena.width / 2.0 - 4.0 {
                         newTarget.x = BC.position3().x;
@@ -790,9 +795,7 @@ impl MyStrategy {
                     && kMode==KickMode::ShotForGoal && ballPath[j].y < self.rules.arena.depth / 2.0 - 30.0 && kMode != KickMode::ClearDanger{
                         newTarget = reflect_target;
                     }
-                    if movementDir.abs() > 100.0 && self.me.position().y > 10.0 {
-                        newTarget = Vec3::new(0.0, -self.rules.arena.depth / 2.0 + 0.1,2.0);
-                    }
+
                     let bestVec = (newTarget - ballPath[j]).normalize();
                     let rulesCopy = self.rules.clone();
                     let fd =  (newTarget.toVec2() - BC.position()).th();
@@ -802,24 +805,24 @@ impl MyStrategy {
                         best_touch_point =  self.best_place_on_ball_for_kick(bestVec,&(BC),rulesCopy.ROBOT_MAX_JUMP_SPEED,&(rulesCopy),kMode).0;
 
                     } else {
-                        best_touch_point = BC.position3() + (BC.position3() - newTarget).normalize()*(self.me.radius + self.game.ball.radius);
+                        best_touch_point = BC.position3() + (BC.position3() - newTarget).normalize()*(self.me.radius + self.game.ball.radius );
                     }
-                    if true || kMode == KickMode::ClearDanger {
-                        best_touch_point.h = BC.position3().h - self.me.radius - 0.6;
-                    }
-                    if best_touch_point.h < self.me.radius {
-                        best_touch_point.h = self.me.radius;
-                    }
-                    if best_touch_point.h > 7.75 {
-                        best_touch_point.h = 7.75;
-                    }
+                    // if true || kMode == KickMode::ClearDanger {
+                    //     best_touch_point.h = BC.position3().h - self.me.radius - 0.6;
+                    // }
+                    // if best_touch_point.h < self.me.radius {
+                    //     best_touch_point.h = self.me.radius;
+                    // }
+                    // if best_touch_point.h > 7.75 {
+                    //     best_touch_point.h = 7.75;
+                    // }
                     let mut best_pos_in_the_future = best_touch_point.toVec2();
                     let me_copy = self.me.clone();
-                    let robottravel_time = self.travel_time_alt(me_copy.position(),me_copy.velocity(),&(best_touch_point.toVec2()));
+                    let robottravel_time = self.travel_time_it_alt(me_copy.position(),me_copy.velocity(),&(best_touch_point.toVec2()));
                     //// maximum ball height for feasible points
-                    let maximum_ball_height = 8.0;
+                    let maximum_ball_height = 4.5;
                     //// find points that have potential of being feasible
-                    if (robottravel_time -actual_time) <= GLOBAL_STEP_TIME  && ballH[j] < maximum_ball_height {
+                    if (robottravel_time -actual_time) <= GLOBAL_STEP_TIME  && best_touch_point.h < maximum_ball_height {
                         self.my_drawer.draw(best_touch_point,0.5,(1.0,1.0,1.0));
                         self.my_drawer.draw(BC.position3(),2.0,(0.0,1.0,0.0));
                         let ballCopy = self.ball_future[j].clone();
@@ -877,13 +880,11 @@ impl MyStrategy {
             ////// if robot reach to the best point faster than ball
             if waitForBall > GLOBAL_STEP_TIME{
                 let maxSpeedDist = self.rules.ROBOT_MAX_GROUND_SPEED*self.rules.ROBOT_MAX_GROUND_SPEED / self.rules.ROBOT_ACCELERATION ;
-                touch_point.y -= maxSpeedDist;//*waitForBall;
-                let y_goal = self.rules.arena.depth/-2.0 + 1.0;
 
-                if touch_point.x.abs() > self.rules.arena.goal_width/2.0  && touch_point.y < self.rules.arena.depth/-2.0 +1.0{
-                    touch_point = Vec2::new(0.0,y_goal);
+                if (kMode == KickMode::ClearDanger) {
+                    touch_point = self.me.position().clone();
                 }
-                self.my_drawer.draw(Vec3::new(touch_point.x,touch_point.y,1.0),1.0,(1.0,1.0,1.0));
+
                 self.gtpSelf(&touch_point);
 
                 //
@@ -920,13 +921,7 @@ impl MyStrategy {
         if self.game.ball.position().x < self.rules.arena.width / -2.0  + 2.0 {
             newTarget.x = self.rules.arena.width / -2.0 +2.0;
         }
-        if false && self.game.ball.position().y  + self.game.ball.velocity().y < -20.0 {
-            let y_goal = -self.rules.arena.depth/2.0 + 1.0;
-            let mut target = Vec2::new(0.0,y_goal);
-            self.gtpSelf(&target);
-        }   else {
-            self.kick(&(newTarget),KickMode::ShotForGoal);
-        }
+        self.kick(&(newTarget),KickMode::ShotForGoal);
     }
     fn gtp_target_validation (_target: Vec2,_rules: &Rules,me: &Robot) -> Vec2 {
         let mut target = _target;

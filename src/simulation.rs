@@ -204,7 +204,7 @@ impl Simulation {
         Self::collide_with_arena(&mut _game.ball, 0.0, _rules);
 
         for _me in &mut _game.robots {
-            if _me.id == _id || _me.touch {
+            if _me.touch {
                 continue;
             }
             if _me.touch {
