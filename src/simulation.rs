@@ -173,10 +173,10 @@ impl Simulation {
         let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
         let mut c = 0;
         let mut v = Vec3::default();
-        for _ in 0 .. 99 {
+        for _ in 0 .. 1 {
             let mut collide = false;
             let mut col_vel = Vec3::default();
-            Self::update(_me, _ball, _action, _rules, delta_time / 100.0 as f64, &mut (&mut collide, &mut col_vel));
+            Self::update(_me, _ball, _action, _rules, delta_time / 1.0 as f64, &mut (&mut collide, &mut col_vel));
             if collide {
                 println!("COL: {:?}", _action);
                 c += 1;
