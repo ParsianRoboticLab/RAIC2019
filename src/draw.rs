@@ -35,7 +35,7 @@ impl Seg3{
 struct drawer {
     sphereList : Vec<Sphere>,
     lineList : Vec<Seg3>,
-    debugTxt : String
+    debugTxt : Vec<String>
 }
 impl drawer {
     fn createFinalString(&mut self) -> String {
@@ -88,16 +88,23 @@ impl drawer {
         }
     }
 
+    if (self.sphereList.len() >= 1  || self.lineList.len() >= 1) && self.debugTxt.len() >= 1{
+        finalRes.push_str(",");
+    }
+    for i in 0..self.debugTxt.len() {
+        finalRes.push_str (&format!("{{
+            \"Text\": \"{} \"
+        }}",self.debugTxt[i]));
+        if i < self.debugTxt.len() - 1 {
+            finalRes.push_str(",");
+        }
+    }
 
-    finalRes.push_str (&format!(",{{
-        \"Text\": \"{} \"
-    }}",self.debugTxt));
 
-    
     finalRes.push_str ("
     ]");
 
-
+    self.debugTxt.clear();
     self.lineList.clear();
     self.sphereList.clear();
 }
@@ -105,15 +112,21 @@ finalRes
 }
 
 fn draw(&mut self, pos : Vec3, rad : f64, color : (f64,f64,f64)) {
-    self.sphereList.push(Sphere::new(rad,pos,color));
+    if CAN_DRAW {
+        self.sphereList.push(Sphere::new(rad,pos,color));
+    }
 }
 
 fn drawLine(&mut self, p1 : Vec3, p2 : Vec3, color : (f64,f64,f64)) {
-    self.lineList.push(Seg3::new(p1,p2,color));
+    if CAN_DRAW {
+        self.lineList.push(Seg3::new(p1,p2,color));
+    }
 }
 
 fn drawText(&mut self, input : String) {
-    self.debugTxt = input;
+    if CAN_DRAW {
+        self.debugTxt.push(input);
+    }
 }
 
 
