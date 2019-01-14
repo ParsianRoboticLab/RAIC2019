@@ -160,8 +160,11 @@ impl Simulation {
             Self::move_e(_me, delta_time, _rules);
             _me.radius = _rules.ROBOT_MIN_RADIUS + (_rules.ROBOT_MAX_RADIUS - _rules.ROBOT_MIN_RADIUS) * _action.jump_speed / _rules.ROBOT_MAX_JUMP_SPEED;
 
+<<<<<<< HEAD
             Self::move_e(&mut _ball, delta_time, _rules);
             Self::collide_entities_col(_me, &mut _ball, _action.jump_speed, _rules);
+=======
+>>>>>>> origin/newGod
             let collision_normal = Self::collide_with_arena(_me, _action.jump_speed, _rules);
             if ! collision_normal.is_valid() {
                 _me.touch = false;
@@ -169,7 +172,11 @@ impl Simulation {
                 _me.touch = true;
                 _me.set_touch_normal(&collision_normal);
             }
+<<<<<<< HEAD
             Self::collide_with_arena(&mut _ball, 0.0, _rules);
+=======
+            
+>>>>>>> origin/newGod
     }
 
     fn tick(_id: i32, _game: &mut Game, _action: &Action, _rules: &Rules) {
