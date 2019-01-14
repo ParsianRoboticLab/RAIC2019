@@ -86,17 +86,24 @@ impl Strategy for MyStrategy {
         let opp_goal = Vec2::new(0.0, self.rules.arena.depth/2.0 + 2.0);
 
         if self.me.id == 1 || self.me.id == 3 {
-            let mut me_copy = self.me.clone();
-            let mut ball_copy = self.game.ball.clone();
-            Simulation::tick(&mut me_copy, &mut ball_copy, &self.action, &self.rules);
-            self.real_me_0 = me_copy;
+            let mut game_copy = self.game.clone();
+            Simulation::tick(self.me.id, &mut game_copy, &self.action, &self.rules);
+            for r in &mut game_copy.robots {
+                if r.id == self.me.id {
+                    self.real_me_0 = r.clone();
+                }
+            }
 
         } else {
-            let mut me_copy = self.me.clone();
-            let mut ball_copy = self.game.ball.clone();
-            Simulation::tick(&mut me_copy, &mut ball_copy, &self.action, &self.rules);
-            self.real_me_1 = me_copy;
+            let mut game_copy = self.game.clone();
+            Simulation::tick(self.me.id, &mut game_copy, &self.action, &self.rules);
+            for r in &mut game_copy.robots {
+                if r.id == self.me.id {
+                    self.real_me_0 = r.clone();
+                }
+            }
         }
+
         for r in &_game.robots {
             if r.is_teammate && r.id != me.id {
                 if me.position().y < r.position().y {
@@ -156,61 +163,6 @@ impl MyStrategy {
         // for i in 0..self.ball_future.len() {
         //     self.my_drawer.draw(self.ball_future[i].position3(), self.rules.BALL_RADIUS, (0.5,0.5,0.5));
         // }
-    }
-
-    fn will_hit_the_ball(&self) -> bool{
-        let mut me = self.me.clone();
-        let mut ball = self.game.ball.clone();
-        let mut action = self.action;
-        let r = &self.rules;
-        for _ in 0..100 {
-            Self::pure_gk(&me, &ball, r, &mut action, true);
-            let (col, _) = Simulation::tick(&mut me, &mut ball, &action, &self.rules);
-            if col && ball.velocity().y > 0.0 && ball.position().y > -r.arena.depth/2.0 + 2.0{
-                println!("COL:COL:");
-                return true;
-            }
-        }
-        false
-    }
-
-    fn pure_gk(me: &Robot, ball: &Ball, rules:&Rules, action: &mut Action, s: bool) {
-        let y_goal = rules.arena.depth/-2.0 + 1.0;
-        let ball_pos = ball.position();
-        let goal_line = Seg2{
-            origin:   Vec2{x: rules.arena.goal_width/ 2.0, y:y_goal},
-            terminal: Vec2{x: rules.arena.goal_width/-2.0, y:y_goal}
-        };
-        let ball_seg = Seg2::new(ball.position(), ball.velocity()*100.0);
-        let biset = get_bisect(&goal_line, &ball_pos);
-        let mut target = biset.terminal();
-        if ball.velocity().y < -1.0 { // KICK
-            // if ball.position().y < -15.0 {
-            //     target = ball.position();
-            // } else {
-            target = goal_line.intersection(ball_seg);
-            // }
-            if !target.is_valid() {
-                target = Vec2::new(ball_pos.x, y_goal);
-            }
-        } else if ball.position().y  < 0.0 {
-            target = Vec2{x: ball.position().x, y:y_goal};
-        }
-        if target.x < rules.arena.goal_width/-2.0 + 1.5 {
-            target.x =rules.arena.goal_width/-2.0 + 1.5;
-        } else if target.x > rules.arena.goal_width/2.0 - 1.5{
-            target.x = rules.arena.goal_width/2.0 - 1.5;
-        }
-
-        Self::gtp(&target, me, rules, action);
-
-        if s {
-            action.jump_speed = rules.ROBOT_MAX_JUMP_SPEED;
-            action.target_velocity_y = action.jump_speed;
-        } else {
-            action.jump_speed = 0.0;
-            action.target_velocity_y = action.jump_speed;
-        }
     }
 
     fn gk(&mut self) {
@@ -309,7 +261,7 @@ impl MyStrategy {
                 timeR = (-1.0 * effectiveSpeed + (effectiveSpeed * effectiveSpeed + 2.0 * self.rules.ROBOT_ACCELERATION * (*target).dist(robot_pos)).sqrt()) / self.rules.ROBOT_ACCELERATION;
             }
         }
-        return timeR;
+        timeR
         // 12.5
     }
     fn travel_time_alt(&mut self, _mePos : Vec2, _meVel: Vec2,target: &Vec2) -> f64 {
@@ -328,7 +280,7 @@ impl MyStrategy {
                 timeR = (-1.0 * effectiveSpeed + (effectiveSpeed * effectiveSpeed + 2.0 * self.rules.ROBOT_ACCELERATION * (*target).dist(robot_pos)).sqrt()) / self.rules.ROBOT_ACCELERATION;
             }
         }
-        return timeR;
+        timeR
         // 12.5
     }
 
@@ -361,7 +313,7 @@ impl MyStrategy {
         if result - oldTime >= 0.2 {
             result = oldTime;
         }
-        return result;
+        result
 
     }
 
@@ -582,7 +534,8 @@ impl MyStrategy {
                 virtualAct.jump_speed = _j_for_kick;
                 Self::set_robot_vel(idealPath,self.rules.ROBOT_MAX_GROUND_SPEED, _j_for_kick,&mut virtualAct);
             }
-            Simulation::tick(&mut me, &mut ballCopy, &virtualAct, &self.rules);
+            let mut game_copy = self.game.clone();
+            Simulation::tick(me.id, &mut game_copy, &virtualAct, &self.rules);
 
             if me.position3().dist(_ball.position3()) < self.me.radius + self.game.ball.radius {
                 can_touch_ball = true;
@@ -692,7 +645,7 @@ impl MyStrategy {
                 }
             }
             virtualBot.set_velocity(&((virPos - self.me.position3()).normalize()*robot_max_vel));
-            _outPut = Simulation::simpleRobotBallColideStep(virtualBot,_ball,_radius_change_speed,_rules);
+            _outPut = Simulation::simple_robot_ball_colide_step(virtualBot,_ball,_radius_change_speed,_rules);
             let _dist = (_outPut.toVec2().normalize() - _finalVelNormm.toVec2()).len();
             if _dist < answerDistTheta {
                 answerDistTheta = _dist;
