@@ -157,8 +157,6 @@ impl Simulation {
             Self::move_e(_me, delta_time, _rules);
             _me.radius = _rules.ROBOT_MIN_RADIUS + (_rules.ROBOT_MAX_RADIUS - _rules.ROBOT_MIN_RADIUS) * _action.jump_speed / _rules.ROBOT_MAX_JUMP_SPEED;
 
-            Self::move_e(_ball, delta_time, _rules);
-            Self::collide_entities_col(_me, _ball, _action.jump_speed, _rules, col);
             let collision_normal = Self::collide_with_arena(_me, _action.jump_speed, _rules);
             if ! collision_normal.is_valid() {
                 _me.touch = false;
@@ -166,7 +164,7 @@ impl Simulation {
                 _me.touch = true;
                 _me.set_touch_normal(&collision_normal);
             }
-            Self::collide_with_arena(_ball, 0.0, _rules);
+            
     }
 
     fn tick(_me : &mut Robot, _ball: &mut Ball, _action: &Action, _rules: &Rules) -> (bool, Vec3){
