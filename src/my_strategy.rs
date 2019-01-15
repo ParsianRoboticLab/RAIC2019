@@ -509,7 +509,7 @@ impl MyStrategy {
         if vel >= self.rules.ROBOT_MAX_GROUND_SPEED {
             vel = self.rules.ROBOT_MAX_GROUND_SPEED;
         }
-        Self::set_robot_vel(angle, vel, 0.0,false,action);
+        Self::set_robot_vel(angle, vel, 0.0,action);
     }
     fn god_simulation (&mut self , _ball : Ball,_touch_point : Vec3,_target : Vec3, _time_availabe : f64, _k_mode : KickMode) -> (bool,Vec3,f64,f64,f64,f64){
         let mut me =  self.me.clone();
@@ -617,7 +617,7 @@ impl MyStrategy {
                 }
                 // println!("best JS {}" , _j_for_kick);
                 let idealPath = (_touch_point.toVec2() - me.position()).th().deg()*DEG2RAD;
-                Self::set_robot_vel(idealPath,self.rules.ROBOT_MAX_GROUND_SPEED, _j_for_kick,false,&mut virtualAct);
+                Self::set_robot_vel(idealPath,self.rules.ROBOT_MAX_GROUND_SPEED, _j_for_kick,&mut virtualAct);
             }
             Simulation::tick(&mut me, &mut ballCopy, &virtualAct, &self.rules);
 
@@ -780,12 +780,10 @@ impl MyStrategy {
         let mut bestTick = 0;
         let mut bestJumpSpeed = 0.0;
         let mut best_tick_beforeJump = 0.0;
-        let mut nitro = false;
         if ball_vel.len() <= std::f64::EPSILON {
             idealPath = (touch_point - robot_pos).th().deg();
             if robot_vel.len() > 29.5  {
                 jump = self.game.ball.height() *4.0;
-                nitro = true;
             }
             if self.me.height() > 1.2 {
                 if robot_pos.dist(ball_pos) < 3.2  {
@@ -795,7 +793,7 @@ impl MyStrategy {
                     jump = 0.0;
                 }
             }
-            Self::set_robot_vel(idealPath*DEG2RAD , 100.0 ,jump,nitro, &mut self.action);
+            Self::set_robot_vel(idealPath*DEG2RAD , 100.0 ,jump, &mut self.action);
         } else {
             ////// New prediction
             let mut extera_time = 0.0;
@@ -936,19 +934,10 @@ impl MyStrategy {
                 if !me.touch {
                     jump = 0.0;
                 }
-                if me.position3().dist(self.game.ball.position3()) <= self.me.radius + self.game.ball.radius + 0.1 && self.me.position3().h > self.me.radius{
+                if me.position3().dist(self.game.ball.position3()) <= self.me.radius + self.game.ball.radius + 0.3 && self.me.position3().h > self.me.radius{
                     jump = 15.0;
-                    self.action.jump_speed = self.rules.ROBOT_MAX_JUMP_SPEED;
-                    self.action.target_velocity_y = -100.0;
-                    self.action.use_nitro = true;
                 }
-                let mut use_nitro = false;
-                // if !self.me.touch && self.me.position3().h > self.me.radius && self.me.position3().dist(self.game.ball.position3()) < self.me.radius + self.game.ball.radius+ 1.0 {
-                //     use_nitro = true;
-                // }
-                if me.touch {
-                    Self::set_robot_vel(idealPath*DEG2RAD ,self.rules.ROBOT_MAX_GROUND_SPEED,jump,use_nitro, &mut self.action);
-                }
+                Self::set_robot_vel(idealPath*DEG2RAD ,self.rules.ROBOT_MAX_GROUND_SPEED,jump, &mut self.action);
             }
         }
     }
@@ -1009,7 +998,7 @@ impl MyStrategy {
             vel = _rules.ROBOT_MAX_GROUND_SPEED;
         }
         // self.my_drawer.drawText(format!("real vel {} , applied Vel",me.velocity().len(),vel));
-        Self::set_robot_vel(angle, vel, 0.0,false, action);
+        Self::set_robot_vel(angle, vel, 0.0, action);
     }
 
     fn gtpSelf (&mut self, target_main: &Vec2) {
@@ -1032,16 +1021,16 @@ impl MyStrategy {
         }
 
         self.my_drawer.drawText(format!("real vel {} , applied Vel {}, acc {}, hist Vel {}",me.velocity().len(),vel,(me.velocity() - last_me.velocity()).len()/GLOBAL_STEP_TIME,last_me.velocity().len()));
-        Self::set_robot_vel(angle, vel, 0.0,false, &mut self.action);
+        Self::set_robot_vel(angle, vel, 0.0, &mut self.action);
     }
-    fn set_robot_vel(angle : f64, vel: f64, jump : f64,use_nitro: bool, action: &mut Action) {
+    fn set_robot_vel(angle : f64, vel: f64, jump : f64, action: &mut Action) {
         println!("sag vel : {}",vel);
         *action = Action {
             target_velocity_x: vel*angle.cos(),
             target_velocity_y: 0.0,
             target_velocity_z: vel*angle.sin(),
             jump_speed: jump,
-            use_nitro: use_nitro,
+            use_nitro: false,
         }
     }
 }
