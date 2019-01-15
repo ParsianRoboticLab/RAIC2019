@@ -99,7 +99,7 @@ impl Strategy for MyStrategy {
             Simulation::tick(self.me.id, &mut game_copy, &self.action, &self.rules);
             for r in &mut game_copy.robots {
                 if r.id == self.me.id {
-                    self.real_me_0 = r.clone();
+                    self.real_me_1 = r.clone();
                 }
             }
         }
