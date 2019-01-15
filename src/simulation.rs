@@ -11,7 +11,7 @@ impl Simulation {
         *_v
     }
 
-    fn collide_entities_col(_a: &mut Entity3, _b: &mut Entity3, _radius_change_speed: f64, _rules: &Rules, col:&mut(&mut bool, &mut Vec3)) {
+    fn collide_entities_col(_a: &mut Entity3, _b: &mut Entity3, _radius_change_speed: f64, _rules: &Rules) {
         let delta_position = _b.position3() - _a.position3();
         let distance = delta_position.len();
         let penetration = _a.radius() + _b.radius() - distance;
@@ -31,8 +31,6 @@ impl Simulation {
                 let impulse = normal * (1.0 + (_rules.MIN_HIT_E + _rules.MAX_HIT_E)/2.0) * delta_vel;
                 _a.set_velocity(&(a_vel + (impulse * k_a)));
                 _b.set_velocity(&(b_vel - (impulse * k_b)));
-                *col.0 = true;
-                *col.1 = *col.1 * 0.2 + _b.velocity3() * 0.8;
             }
         }
     }
@@ -61,8 +59,7 @@ impl Simulation {
         }
     }
 
-
-    fn simpleRobotBallColideStep(_robot: &Entity3, _ball: &Entity3, _radius_change_speed: f64,_rules: &Rules) -> Vec3 {
+    fn simple_robot_ball_colide_step(_robot: &Entity3, _ball: &Entity3, _radius_change_speed: f64,_rules: &Rules) -> Vec3 {
         let delta_position = _ball.position3() - _robot.position3();
         let distance = delta_position.len();
         let penetration = _robot.radius() + _ball.radius() - distance;
@@ -78,8 +75,7 @@ impl Simulation {
             //+ _b.radius_change_speed() - _a.radius_change_speed();
             if delta_vel < 0.0 {
                 let impulse = normal * (1.0 + (_rules.MIN_HIT_E + _rules.MAX_HIT_E)/2.0) * delta_vel;
-                let finalVel = b_vel - (impulse * k_b);
-                finalVel
+                b_vel - (impulse * k_b)
 
             } else {
                 b_vel
@@ -89,7 +85,7 @@ impl Simulation {
         }
     }
 
-    fn bestPlaceOnBallForKick(finalVel : Vec3 ,_robot: &Entity3, _ball: &Entity3, _radius_change_speed: f64,_rules: &Rules) -> Vec3 {
+    fn best_place_on_ball_for_kick(finalVel : Vec3 ,_robot: &Entity3, _ball: &Entity3, _radius_change_speed: f64,_rules: &Rules) -> Vec3 {
             let _result = Vec3::new(5000.0,5000.0,5000.0);
             let _finalVelNormm = finalVel.normalize();
             let mut _x = 0.0;
@@ -110,7 +106,7 @@ impl Simulation {
 
                 }
             }
-            return _result;
+            _result
     }
 
     fn collide_with_arena(_e: &mut Entity3, _radius_change_speed: f64, _rules: &Rules) -> Vec3 {
@@ -142,7 +138,14 @@ impl Simulation {
         _e.set_velocity_h(vel.h - (_rules.GRAVITY * delta_time));
     }
 
-    fn update(_me : &mut Robot, _ball: &mut Ball, _action: &Action, _rules: &Rules, delta_time: f64, col:&mut(&mut bool, &mut Vec3)) {
+    fn update(_id : i32, _game : &mut Game, _action: &Action, _rules: &Rules, delta_time: f64) {
+            let mut _me = &mut Robot::default();
+            for r in &mut _game.robots {
+                if _id == r.id {
+                    _me = r;
+                }
+            }
+            let mut _ball = _game.ball;
             if _me.touch {
                 let mut target_vel = Self::clamp(&_action.target_vel(), _rules.ROBOT_MAX_GROUND_SPEED);
                 target_vel -= _me.touch_normal() * _me.touch_normal().inner_product(&target_vel);
@@ -164,35 +167,23 @@ impl Simulation {
                 _me.touch = true;
                 _me.set_touch_normal(&collision_normal);
             }
-            
+
     }
 
-    fn tick(_me : &mut Robot, _ball: &mut Ball, _action: &Action, _rules: &Rules) -> (bool, Vec3){
+    fn tick(_id: i32, _game: &mut Game, _action: &Action, _rules: &Rules) {
         let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
-        let mut c = 0;
-        let mut v = Vec3::default();
         for _ in 0 .. 1 {
-            let mut collide = false;
-            let mut col_vel = Vec3::default();
-            Self::update(_me, _ball, _action, _rules, delta_time / 1.0 as f64, &mut (&mut collide, &mut col_vel));
-            if collide {
-                println!("COL: {:?}", _action);
-                c += 1;
-                v += col_vel;
-            }
+            Self::update(_id, _game, _action, _rules, delta_time / 1.0);
         }
-        (c > 20, v * (1.0 / f64::from(c)))
-    }
 
-    fn update_ball(_ball: &mut Ball, _rules: &Rules, delta_time: f64) {
-            Self::move_e(_ball, delta_time, _rules);
-            Self::collide_with_arena(_ball, 0.0, _rules);
-    }
-
-    fn tick_ball(_ball: &mut Ball, _rules: &Rules, _time: f64) {
-        let delta_time = _time / _rules.TICKS_PER_SECOND as f64;
-        for _ in 0 .. 100 - 1 {
-            Self::update_ball(_ball, _rules, delta_time / 100 as f64);
+        for pack in &mut _game.nitro_packs {
+            if pack.respawn_ticks == None {
+                continue;
+            }
+            pack.respawn_ticks = Some(pack.respawn_ticks.unwrap() - 1);
+            if pack.respawn_ticks == Some(0) {
+                pack.respawn_ticks = None;
+            }
         }
     }
 
@@ -215,7 +206,6 @@ impl Simulation {
                     let robot_vel = _me.velocity3();
                     _me.set_velocity(&(robot_vel + Self::clamp(&(target_vel_change.normalize() * acc * delta_time), target_vel_change.len())));
                 }
-                // TODO : USE NITRO
             }
 
             Self::move_e(_me, delta_time, _rules);
@@ -252,7 +242,17 @@ impl Simulation {
     fn tick_game(_id: i32, _game: &mut Game, _rules: &Rules) {
         let delta_time = 1.0 / _rules.TICKS_PER_SECOND as f64;
         for _ in 0 .. 50 {
-            Self::update_game(_id, _game, _rules, delta_time / 50 as f64);
+            Self::update_game(_id, _game, _rules, delta_time / 50.0);
+        }
+
+        for pack in &mut _game.nitro_packs {
+            if pack.respawn_ticks == None {
+                continue;
+            }
+            pack.respawn_ticks = Some(pack.respawn_ticks.unwrap() - 1);
+            if pack.respawn_ticks == Some(0) {
+                pack.respawn_ticks = None;
+            }
         }
     }
 
